@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unified Obsidian Clipper</title>
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { min-width: 320px; margin: 0; padding: 24px; }
+      main { display: grid; gap: 12px; }
+      h1 { margin: 0; font-size: 20px; }
+      p { margin: 0; line-height: 1.5; }
+      code { padding: 2px 6px; border-radius: 5px; background: color-mix(in srgb, CanvasText 10%, transparent); }
+      #detail { max-width: 420px; overflow-wrap: anywhere; opacity: .72; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Unified Obsidian Clipper</h1>
+      <p>统一外壳：<code id="stage">loading</code></p>
+      <p>当前来源：<code id="source">loading</code></p>
+      <p id="detail">正在读取当前标签页…</p>
+      <p>业务剪藏功能仍在迁移中；完成后再交付 Chrome 手动测试包。</p>
+    </main>
+    <script type="module" src="status.js"></script>
+  </body>
+</html>

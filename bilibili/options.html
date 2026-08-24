@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bilibili Obsidian Clipper 设置</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Bilibili Obsidian Clipper</h1>
+
+      <section class="quick-start">
+        <div class="quick-start-head">
+          <h2>配置指引</h2>
+        </div>
+        <ol>
+          <li>在 Obsidian 社区插件市场安装并启用 <strong>Local REST API with MCP</strong>。</li>
+          <li>
+            在插件设置中勾选 <strong>Enable Non-encrypted (HTTP) Server</strong>，地址通常为
+            <code>http://127.0.0.1:27123</code>。
+          </li>
+          <li>复制 API Key，回到本页填写“Local REST API 地址”和“Local REST API Key”。</li>
+        </ol>
+      </section>
+
+      <label for="noteFolder">笔记目录（用于自动写入）</label>
+      <input id="noteFolder" type="text" placeholder="例如：Clippings/Bilibili" />
+      <p class="hint inline-hint">支持变量：{{created}} / {{upload_date}} / {{author}} / {{bvid}}，示例：Clippings/Bilibili/{{created}}</p>
+
+      <label for="obsidianApiBaseUrl">Local REST API 地址</label>
+      <input id="obsidianApiBaseUrl" type="text" placeholder="例如：http://127.0.0.1:27123" />
+
+      <label for="obsidianApiKey">Local REST API Key</label>
+      <input id="obsidianApiKey" type="password" placeholder="填入 Obsidian Local REST API 的 Key" />
+      <p class="hint inline-hint">填写完成后建议先点击下方“测试连接”。</p>
+
+      <label for="tags">默认标签（逗号分隔）</label>
+      <input id="tags" type="text" placeholder="例如：clippings,bilibili,subtitle" />
+
+      <label for="downloadFormat">下载格式</label>
+      <select id="downloadFormat">
+        <option value="srt">SRT</option>
+        <option value="txt">TXT</option>
+      </select>
+
+      <label class="checkbox">
+        <input id="includeDateInFilename" type="checkbox" />
+        文件名前包含导出日期
+      </label>
+
+      <label class="checkbox">
+        <input id="includeHotCommentsInNote" type="checkbox" />
+        导出前 20 条热门评论
+      </label>
+
+      <label class="checkbox">
+        <input id="includeTimestampInBody" type="checkbox" />
+        在字幕正文中保留时间戳
+      </label>
+
+      <label class="checkbox">
+        <input id="enableDebugLogs" type="checkbox" />
+        启用调试日志（仅在排查问题时开启）
+      </label>
+
+      <section class="field-group">
+        <h2>笔记属性（Frontmatter）</h2>
+        <p class="hint">勾选需要写入到 Obsidian 属性区的字段。</p>
+        <div class="field-grid">
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="title" /> title</label>
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="url" /> url</label>
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="bvid" /> bvid</label>
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="cid" /> cid</label>
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="author" /> author</label>
+          <label class="mini-checkbox">
+            <input type="checkbox" name="frontmatterField" value="upload_date" /> upload_date
+          </label>
+          <label class="mini-checkbox">
+            <input type="checkbox" name="frontmatterField" value="subtitle_lang" /> subtitle_lang
+          </label>
+          <label class="mini-checkbox">
+            <input type="checkbox" name="frontmatterField" value="created" /> created
+          </label>
+          <label class="mini-checkbox"><input type="checkbox" name="frontmatterField" value="tags" /> tags</label>
+        </div>
+      </section>
+
+      <section class="field-group property-editor">
+        <h2>自定义属性</h2>
+        <p class="hint">支持默认属性的变量映射，比如 `{{upload_date}}`、`{{created}}`</p>
+        <div id="fixedPropertiesList" class="fixed-properties-list"></div>
+        <p id="fixedPropertiesEmpty" class="fixed-properties-empty">还没有自定义属性</p>
+        <button id="addFixedPropertyBtn" class="add-property-btn" type="button">+ 添加属性</button>
+      </section>
+
+      <section class="field-group property-editor">
+        <h2>正文附加段落</h2>
+        <p class="hint">在正文插入占位段落标题。默认结构：简介-章节-字幕；具体内容可留空。</p>
+        <div id="noteSectionsList" class="note-sections-list"></div>
+        <p id="noteSectionsEmpty" class="fixed-properties-empty">还没有正文附加段落</p>
+        <button id="addNoteSectionBtn" class="add-property-btn" type="button">+ 添加段落</button>
+      </section>
+
+      <section class="field-group">
+        <h2>AI 模型平台</h2>
+        <p class="hint">支持 OpenAI 兼容协议（OpenAI / DeepSeek / 智谱 / MiniMax / Moonshot / OpenRouter / Ollama 等）。</p>
+        <div id="aiProvidersList" class="ai-providers-list"></div>
+        <p id="aiProvidersEmpty" class="ai-providers-empty">还没有配置平台，点击下方按钮添加。</p>
+        <button id="addAiProviderBtn" class="add-property-btn" type="button">+ 添加平台</button>
+      </section>
+
+      <section class="field-group field-group-tight-bottom">
+        <h2>AI 对话 - 系统提示词</h2>
+        <textarea id="aiSystemPrompt" class="settings-textarea" placeholder="例如：回答尽量简洁；优先总结视频观点；必要时引用字幕原话。"></textarea>
+      </section>
+
+      <section class="field-group field-group-tight-bottom">
+        <h2>AI 对话 - 初始问题</h2>
+        <p class="hint">新视频没有历史对话时显示，最多 4 条，留空则不显示。</p>
+        <div class="quick-prompts-grid">
+          <input class="ai-initial-quick-prompt" type="text" placeholder="快捷问题 1" />
+          <input class="ai-initial-quick-prompt" type="text" placeholder="快捷问题 2" />
+          <input class="ai-initial-quick-prompt" type="text" placeholder="快捷问题 3" />
+          <input class="ai-initial-quick-prompt" type="text" placeholder="快捷问题 4" />
+        </div>
+      </section>
+
+      <section class="field-group field-group-tight-bottom player-ai-quick-action-settings">
+        <h2>AI 按钮</h2>
+        <label class="checkbox">
+          <input id="enablePlayerAiQuickAction" type="checkbox" />
+          在视频播放器显示 AI 按钮，点击按照预设提示词调用 AI 对话，提示词可为空
+        </label>
+        <textarea
+          id="playerAiQuickPrompt"
+          class="settings-textarea"
+          placeholder="例如：整理这期视频的内容，输出结构化总结。"
+        ></textarea>
+      </section>
+
+      <div class="action-row">
+        <button id="saveBtn" type="button">保存设置</button>
+        <button id="testConnectionBtn" class="secondary-btn" type="button">测试连接</button>
+      </div>
+      <p id="status" class="status"></p>
+    </main>
+
+    <script src="./options.js"></script>
+  </body>
+</html>
