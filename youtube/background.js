@@ -393,11 +393,6 @@ YTD_LIFECYCLE.actionOnClicked((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
 });
 
-/**
- * Allow the side panel to open on any page, but it's designed for YouTube.
- */
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-
 YTD_LIFECYCLE.runtimeOnInstalled(({ reason }) => {
   if (reason === "install") chrome.tabs.create({ url: chrome.runtime.getURL("youtube/options.html") });
 });

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "Unified Obsidian Clipper",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "minimum_chrome_version": "116",
   "description": "Save YouTube & Bilibili videos and web pages to Obsidian with transcripts, AI summaries, highlights, and web clipping.",
   "permissions": [
@@ -154,10 +154,5 @@
         "*://*/*"
       ]
     }
-  ],
-  "optional_host_permissions": [
-    "https://*/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
   ]
 }
