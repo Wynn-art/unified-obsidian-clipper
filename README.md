@@ -2,14 +2,18 @@
 
 一个 Chrome 扩展，把 YouTube / Bilibili 视频和任意网页一键剪藏到 Obsidian：自动抓取视频字幕与信息、调用 AI 生成摘要和笔记、支持网页高亮和阅读模式。
 
-当前稳定版本：**v0.5.8**。版本变化见 [CHANGELOG](CHANGELOG.md)，完整发布说明见 [v0.5.8 Release Notes](docs/releases/v0.5.8.md)。
+当前稳定版本：**v0.5.9**。版本变化见 [CHANGELOG](CHANGELOG.md)，完整发布说明见 [v0.5.9 Release Notes](docs/releases/v0.5.9.md)。
 
 ### 安装
 
-1. 从 GitHub Releases 下载 `unified-obsidian-clipper-0.5.8.zip` 并解压。
+1. 从 GitHub Releases 下载 `unified-obsidian-clipper-0.5.9.zip` 并解压。
 2. 打开 Chrome 的 `chrome://extensions`，启用“开发者模式”。
 3. 点击“加载已解压的扩展程序”，选择解压后的目录。
 4. 更新版本后，请在扩展管理页点击“重新加载”，并刷新已打开的 YouTube、B站和文章页面。
+
+## 0.5.9 更新 Obsidian 文件夹 Logo
+
+所有扩展入口、网页剪藏、YouTube、B站、设置页和状态页统一使用橙红色 Obsidian 文件夹 Logo。主图恢复透明圆角背景，并重新生成 16、32、48、128 像素扩展图标；方形比例完整显示，不拉伸、不裁切。
 
 ## 0.5.8 修复文章对话报告乱码与结构丢失
 
@@ -141,7 +145,7 @@ YouTube 保存到 Obsidian 时，总结、趋势、扩展知识和思维导图�
 
 ## 0.1.1 个人 Logo
 
-扩展图标、网页剪藏、YouTube/B站侧栏及设置页统一使用用户提供的个人 logo，原图保存在 `branding/logo.jpeg`。此次只调整品牌资源和展示，不改变剪藏、模型配置或保存逻辑。
+扩展图标、网页剪藏、YouTube/B站侧栏及设置页统一使用用户提供的 Logo。当前橙红色 Obsidian 文件夹品牌主图保存在 `branding/logo.png`。
 
 ## 0.1.0 视频学习升级
 

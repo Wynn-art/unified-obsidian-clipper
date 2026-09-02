@@ -1,6 +1,6 @@
 {
   "name": "unified-obsidian-clipper",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "private": true,
   "description": "Unified web clipping and video learning for Obsidian",
   "scripts": {
