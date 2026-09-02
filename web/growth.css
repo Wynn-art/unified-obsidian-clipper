@@ -16,19 +16,6 @@ html[data-unified-ui="web"]#popup:not(.is-side-panel):not(.is-embedded) {
   --popup-max-height: 600px;
   --chromium-popup-height: 600px;
 }
-html[data-unified-ui="web"] .open-tall-panel {
-  display: flex;
-  width: calc(100% - 24px);
-  flex: 0 0 auto;
-  gap: 8px;
-  margin: 8px 12px;
-  color: var(--accent);
-  background: var(--surface-raised);
-  border: 1px solid var(--border-heavy);
-  border-radius: var(--r-pill);
-  box-shadow: none;
-}
-html[data-unified-ui="web"] .open-tall-panel svg { width: 16px; height: 16px; }
 html[data-unified-ui="web"] .clipper > #articleGrowthNotice { flex: 0 0 auto; padding: 0 16px; }
 html[data-unified-ui="web"] .clipper > .clipper-footer + .growth-chat { flex: 0 0 auto; max-height: 65vh; overflow: hidden; margin: 0 12px 12px; }
 html[data-unified-ui="web"] .clipper { position: relative; }

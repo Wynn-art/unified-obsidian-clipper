@@ -160,16 +160,15 @@ test('article dialogue stays collapsed when a valid article becomes ready', asyn
   assert.equal(f.el('growthChat').open, false);
 });
 
-test('article popup offers the existing full-height embedded panel instead of exceeding Chrome popup limits', () => {
+test('article popup does not expose the full-height embedded-panel action', () => {
   const html = fs.readFileSync(path.join(__dirname, '../web/popup.html'), 'utf8');
-  const tallButton = html.indexOf('id="embedded-mode"');
-  const clipper = html.indexOf('<div class="clipper">');
-  assert.match(html, /<p class="error-message"[^>]*><\/p>\s*<button id="embedded-mode"/,
-    'full-height action must be prominent between header status and clipper');
-  assert.ok(tallButton < clipper);
-  assert.match(html, /id="embedded-mode"[^>]*>[\s\S]*?打开全高对话面板[\s\S]*?<\/button>/);
-  const hostCss = fs.readFileSync(path.join(__dirname, '../web/highlighter.css'), 'utf8');
-  assert.match(hostCss, /#obsidian-clipper-container\{[^}]*max-height:calc\(100% - 24px\)[^}]*height:calc\(100% - 24px\)/);
+  const popupJs = fs.readFileSync(path.join(__dirname, '../web/popup.js'), 'utf8');
+  const growthCss = fs.readFileSync(path.join(__dirname, '../web/growth.css'), 'utf8');
+  const styleCss = fs.readFileSync(path.join(__dirname, '../web/style.css'), 'utf8');
+  assert.doesNotMatch(html, /id="embedded-mode"|打开全高对话面板/);
+  assert.doesNotMatch(popupJs, /getElementById\("embedded-mode"\)/);
+  assert.doesNotMatch(growthCss, /\.open-tall-panel/);
+  assert.doesNotMatch(styleCss, /#embedded-mode/);
 });
 
 test('article growth chat is inside the clipping column so popup overflow cannot hide it', () => {
@@ -190,7 +189,6 @@ test('article growth chat is inside the clipping column so popup overflow cannot
   const css = fs.readFileSync(path.join(__dirname, '../web/growth.css'), 'utf8');
   assert.match(css, /\.clipper\s*>\s*\.clipper-footer\s*\+\s*\.growth-chat\s*\{[^}]*flex:\s*0\s+0\s+auto/s);
   assert.match(css, /#popup:not\(\.is-side-panel\):not\(\.is-embedded\)[^{]*\{[^}]*--popup-height:\s*600px[^}]*--popup-max-height:\s*600px[^}]*--chromium-popup-height:\s*600px/s);
-  assert.match(css, /\.open-tall-panel\s*\{[^}]*display:\s*flex[^}]*width:\s*calc\(100% - 24px\)/s);
   assert.match(css, /\.clipper\s*>\s*\.growth-chat\[open\][^{]*\{[^}]*position:\s*static[^}]*overflow-y:\s*auto/s);
   assert.match(css, /\.clipper\s*>\s*#articleGrowthNotice\s*\{[^}]*display:\s*none/s);
   assert.match(css, /\.clipper\s*>\s*#note-content-container\s*\{[^}]*min-height:\s*0/s);

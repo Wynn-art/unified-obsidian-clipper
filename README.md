@@ -2,14 +2,18 @@
 
 一个 Chrome 扩展，把 YouTube / Bilibili 视频和任意网页一键剪藏到 Obsidian：自动抓取视频字幕与信息、调用 AI 生成摘要和笔记、支持网页高亮和阅读模式。
 
-当前稳定版本：**v0.5.10**。版本变化见 [CHANGELOG](CHANGELOG.md)，完整发布说明见 [v0.5.10 Release Notes](docs/releases/v0.5.10.md)。
+当前稳定版本：**v0.5.11**。版本变化见 [CHANGELOG](CHANGELOG.md)，完整发布说明见 [v0.5.11 Release Notes](docs/releases/v0.5.11.md)。
 
 ### 安装
 
-1. 从 GitHub Releases 下载 `unified-obsidian-clipper-0.5.10.zip` 并解压。
+1. 从 GitHub Releases 下载 `unified-obsidian-clipper-0.5.11.zip` 并解压。
 2. 打开 Chrome 的 `chrome://extensions`，启用“开发者模式”。
 3. 点击“加载已解压的扩展程序”，选择解压后的目录。
 4. 更新版本后，请在扩展管理页点击“重新加载”，并刷新已打开的 YouTube、B站和文章页面。
+
+## 0.5.11 取消文章全高对话按钮
+
+文章弹窗顶部不再显示“打开全高对话面板”。同时删除对应点击事件和专用样式，避免留下空白占位；底部“成长对话”、文章侧栏、思维脑图与报告保存功能保持不变。
 
 ## 0.5.10 清理 Chrome 扩展错误日志
 
