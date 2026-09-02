@@ -193,7 +193,7 @@ B站学习模式使用独立的模型配置，入口位于原剪藏弹窗与 AI 
 
 本项目合并并改进自以下 MIT 开源项目：
 
-- [YouTube Digest](https://github.com/Xplore-AGI) — Copyright (c) 2026 Xplore-AGI
+- [YouTube Digest](https://github.com/zarazhangrui/youtube-digest) — Copyright (c) 2026 Zara Zhang
 - [Bilibili Obsidian Clipper](https://github.com/haixiong1997/Bilibili-Obsidian-Clipper) — Copyright (c) 2026 haixiong1997
 - [Obsidian Web Clipper](https://github.com/obsidianmd/obsidian-clipper) — Copyright (c) 2024 Obsidian
 

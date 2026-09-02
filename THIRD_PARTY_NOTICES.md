@@ -4,7 +4,9 @@ This project is designed to incorporate source code from the following MIT-licen
 
 ## YouTube Digest
 
-Copyright (c) 2026 Xplore-AGI
+Source: https://github.com/zarazhangrui/youtube-digest
+
+Copyright (c) 2026 Zara Zhang
 
 Source snapshot tree SHA-256: `9b2acededdd2048d88fa256ee9f36610e70b76b75c409f1eee9c66c969fab6b7`
 
