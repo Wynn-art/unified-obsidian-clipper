@@ -1,0 +1,46 @@
+/* Article popup, side panel and embedded view share the YouTube conversation dock. */
+html[data-unified-ui="web"] .growth-chat { margin: 12px 0 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+html[data-unified-ui="web"] #articleGrowthNotice { padding: 0 16px; margin: 12px 0; }
+html[data-unified-ui="web"] .growth-body { max-height: 65vh; padding-bottom: 16px; }
+html[data-unified-ui="web"] .growth-body button { border-radius: var(--r-pill); height: auto; white-space: normal; }
+html[data-unified-ui="web"] .growth-chat > summary { line-height: 1.6; }
+html[data-unified-ui="web"] .growth-chat > summary span { display: inline-block; }
+html[data-unified-ui="web"] .growth-body label { display: block; }
+html[data-unified-ui="web"] .growth-report pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+html[data-unified-ui="web"] .growth-chat[hidden] { display: none; }
+html[data-unified-ui="web"] .growth-chat [hidden] { display: none !important; }
+
+/* Keep the entry in the fixed-height popup's visible flex column. */
+html[data-unified-ui="web"]#popup:not(.is-side-panel):not(.is-embedded) {
+  --popup-height: 600px;
+  --popup-max-height: 600px;
+  --chromium-popup-height: 600px;
+}
+html[data-unified-ui="web"] .open-tall-panel {
+  display: flex;
+  width: calc(100% - 24px);
+  flex: 0 0 auto;
+  gap: 8px;
+  margin: 8px 12px;
+  color: var(--accent);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-heavy);
+  border-radius: var(--r-pill);
+  box-shadow: none;
+}
+html[data-unified-ui="web"] .open-tall-panel svg { width: 16px; height: 16px; }
+html[data-unified-ui="web"] .clipper > #articleGrowthNotice { flex: 0 0 auto; padding: 0 16px; }
+html[data-unified-ui="web"] .clipper > .clipper-footer + .growth-chat { flex: 0 0 auto; max-height: 65vh; overflow: hidden; margin: 0 12px 12px; }
+html[data-unified-ui="web"] .clipper { position: relative; }
+html[data-unified-ui="web"] .clipper > .growth-chat[open] {
+  position: static;
+  max-height: min(320px, 48vh);
+  overflow-y: auto;
+  margin: 0 12px 12px;
+  background: var(--surface);
+}
+
+html[data-unified-ui="web"] .clipper > #articleGrowthNotice { display: none; }
+html[data-unified-ui="web"] .clipper > #note-content-container { min-height: 0; overflow: hidden; }
+html[data-unified-ui="web"] .clipper > .clipper-footer { flex: 0 0 auto; }
+html[data-unified-ui="web"] .unified-save-hint { display: none !important; }

@@ -158,7 +158,8 @@ function bindEvents() {
       }
 
       if (chrome.sidePanel?.open) {
-        await chrome.sidePanel.open({ tabId: tab.id });
+        const opened = await chrome.runtime.sendMessage({ type: "unified-bili:open", tabId: tab.id, mode: "chat" });
+        if (!opened?.ok) throw new Error(opened?.error || "打开侧栏失败");
       } else {
         throw new Error("当前浏览器不支持扩展侧边栏");
       }

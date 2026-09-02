@@ -1,0 +1,11 @@
+{
+  "name": "unified-obsidian-clipper",
+  "version": "0.5.8",
+  "private": true,
+  "description": "Unified web clipping and video learning for Obsidian",
+  "scripts": {
+    "test": "node --test tests/*.test.js youtube/tests/*.test.js bilibili-digest/tests/*.test.js",
+    "check": "node scripts/check.mjs",
+    "package": "python3 scripts/package.py"
+  }
+}

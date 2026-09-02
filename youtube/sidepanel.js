@@ -6,14 +6,17 @@
  */
 
 const DEBUG = false;
-const debugLog = (..._args) => {
-  if (DEBUG) console.log("[YouTube Digest] debug event");
+const debugLog = (...args) => {
+  if (DEBUG) console.log(...args);
 };
 
 // ============================================================
 // STATE
 // ============================================================
 
+let pendingYouTubeLearningSave = null;
+let youtubeObsidianSaveInFlight = null;
+let growthPanel = null;
 let currentVideoId = null;
 let currentVideoUrl = null;
 let currentAnalysis = null;
@@ -28,19 +31,31 @@ let currentVideoDuration = 0;
 let isAnalysisLoading = false; // Track if analysis is in progress
 let youtubeTabId = null; // Store the YouTube tab ID for reliable messaging
 let errorAction = null;
-let pendingYouTubeLearningSave = null;
-let youtubeObsidianSaveInFlight = null;
 
 // --- Translation state ---
-// The public transcript control intentionally supports only the original
-// subtitles, Chinese, and an aligned source + Chinese view.
+// The universal language control supports original content, Chinese, and an
+// aligned bilingual view across Transcript, Overview, and Notes.
 let currentTranscriptMode = "original";
+const DISPLAY_LANGUAGE_MODE_KEY = "ytd_display_language_modes_by_video";
+const DISPLAY_LANGUAGE_MODES = new Set(["original", "zh", "bilingual"]);
 let translationGeneration = 0; // Invalidates responses from older UI modes/videos.
 let translationWorkCount = 0;
 let transcriptScrollObserver = null;
 // Stable keys include the video, source mode, language, and semantic segment ID.
 let transcriptParagraphCache = new Map();
+let interfaceTranslationCache = new Map();
+let interfaceTranslationInFlight = new Set();
+let interfaceTranslationFailures = new Set();
+let currentNotes = [];
+let currentNotesFilterVideoId = null;
 const TRANSLATION_MESSAGE_TIMEOUT_MS = 130_000;
+const TRANSLATION_BATCH_SIZE = 3;
+
+// --- Transcript search state ---
+// Matches point to visible marks in the active transcript language mode.
+// Search navigation only scrolls the panel. It does not seek the video.
+let transcriptSearchMatches = [];
+let transcriptSearchIndex = -1;
 
 /**
  * Prevent a stopped service worker or dead message channel from leaving the
@@ -86,6 +101,15 @@ function sendTranslationMessage(message) {
 let autoScrollEnabled = true; // True = scroll transcript to follow video playback
 let autoScrollInterval = null; // setInterval ID for polling video time
 let lastAutoScrollTime = 0; // Timestamp of last programmatic scroll (ignores scroll events within 1s)
+
+// --- Transcript reading position state ---
+// Session storage survives a side panel close but clears when Chrome closes.
+const TRANSCRIPT_VIEW_STATE_KEY = "ytd_transcript_view_state";
+let pendingTranscriptViewState = null;
+let transcriptViewStateSaveTimer = null;
+let isRestoringTranscriptView = false;
+let selectionActionsController = null;
+let lastTranscriptScrollTop = 0;
 
 // ============================================================
 // TRANSCRIPT GROUPING
@@ -232,6 +256,14 @@ function groupTranscriptEntries(entries, limits = TRANSCRIPT_SEGMENT_LIMITS) {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (typeof YTD_GROWTH_PANEL !== "undefined") growthPanel = YTD_GROWTH_PANEL.create({
+    document,
+    send: message => chrome.runtime.sendMessage(message),
+    getContext: buildYouTubeGrowthContext,
+    copy: text => navigator.clipboard.writeText(text),
+    confirm: message => window.confirm(message),
+  });
+  setTranscriptModeButtons("original");
   setupEventListeners();
   await evictOldCacheEntries(20);
 
@@ -318,7 +350,10 @@ function panelIsShowingResults() {
  */
 function handleFrontTabUrl(url) {
   if (!(url || "").startsWith("https://www.youtube.com")) {
-    // Panel is a YouTube-only tool — remove itself from non-YouTube tabs.
+    void growthPanel?.syncContext(null);
+    // Start the position save, then close in this same event callback. Chrome
+    // does not reliably honor window.close() after an asynchronous wait.
+    void saveCurrentTranscriptViewState();
     window.close();
     return;
   }
@@ -327,15 +362,33 @@ function handleFrontTabUrl(url) {
   // Refresh when the video changed, or when we're not currently showing
   // results (e.g. user went home, then clicked back into the same video).
   if (newVideoId !== currentVideoId || !panelIsShowingResults()) {
+    void growthPanel?.syncContext(null);
     scheduleDigestRefresh();
   }
 }
 
-// Fires when a tab's URL changes — including YouTube's no-reload navigation.
+/**
+ * Gets the best URL from a tab update that can change the visible page.
+ * The status events repeat the close request after Chrome commits the first
+ * non-YouTube navigation, when an early URL event alone can be lost.
+ */
+function getNavigationUrl(changeInfo, tab) {
+  if (changeInfo.url) return changeInfo.url;
+  if (changeInfo.status !== "loading" && changeInfo.status !== "complete") {
+    return "";
+  }
+  return tab.pendingUrl || tab.url || "";
+}
+
+// Fires when a tab starts or completes navigation, including YouTube's
+// no-reload navigation. The completion event is a deliberate second close
+// attempt for the first non-YouTube page.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!changeInfo.url || !tab.active) return;
+  if (!tab.active) return;
   if (panelWindowId !== null && tab.windowId !== panelWindowId) return;
-  handleFrontTabUrl(changeInfo.url);
+  const url = getNavigationUrl(changeInfo, tab);
+  if (!url) return;
+  handleFrontTabUrl(url);
 });
 
 // Fires when a different tab comes to the front — switching tabs, or a new
@@ -353,6 +406,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
 });
 
 function setupEventListeners() {
+  document.getElementById("syncObsidianBtn")?.addEventListener("click", syncCurrentVideoToObsidian);
   // Tab switching
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -380,13 +434,16 @@ function setupEventListeners() {
   document
     .getElementById("exportTranscriptBtn")
     ?.addEventListener("click", exportTranscript);
-  document
-    .getElementById("syncObsidianBtn")
-    ?.addEventListener("click", syncCurrentVideoToObsidian);
   document.querySelectorAll(".transcript-mode-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      handleTranscriptModeChange(button.dataset.transcriptMode);
+      handleDisplayLanguageModeChange(button.dataset.transcriptMode);
     });
+  });
+  setupTranscriptSearch();
+
+  // pagehide also covers closing the side panel without a tab change.
+  window.addEventListener("pagehide", () => {
+    void saveCurrentTranscriptViewState();
   });
 
   // Follow playback button — re-enables auto-scroll after user scrolled away
@@ -430,37 +487,24 @@ function setNotesFilter(showAll) {
 
 async function checkCurrentTab() {
   try {
-    // Try multiple strategies to find the YouTube tab
-    let tab = null;
-
-    // Strategy 1: Active tab in last focused window
-    let tabs = await chrome.tabs.query({
+    // The panel belongs only to the active tab. Looking for another open
+    // YouTube tab here can keep an old transcript visible on a non-YouTube
+    // page, so never fall back to background tabs.
+    const tabs = await chrome.tabs.query({
       active: true,
       lastFocusedWindow: true,
     });
-    if (tabs[0]?.url?.includes("youtube.com")) {
-      tab = tabs[0];
-    }
-
-    // Strategy 2: Any active YouTube tab
-    if (!tab) {
-      tabs = await chrome.tabs.query({
-        url: "https://www.youtube.com/*",
-        active: true,
-      });
-      if (tabs[0]) tab = tabs[0];
-    }
-
-    // Strategy 3: Any YouTube tab (last resort)
-    if (!tab) {
-      tabs = await chrome.tabs.query({ url: "https://www.youtube.com/*" });
-      if (tabs[0]) tab = tabs[0];
-    }
+    const tab = tabs[0] || null;
 
     debugLog("[YouTube Digest Panel] Found tab:", tab?.id, tab?.url);
 
     if (!tab?.url) {
       showState("welcome");
+      return;
+    }
+
+    if (!tab.url.startsWith("https://www.youtube.com")) {
+      handleFrontTabUrl(tab.url);
       return;
     }
 
@@ -533,17 +577,32 @@ function extractVideoId(url) {
 // ============================================================
 
 async function startDigest(videoId, videoUrl) {
+  if (videoId !== currentVideoId) void growthPanel?.syncContext(null);
   // Check if we already have this video loaded in memory
   if (videoId === currentVideoId && currentAnalysis) {
     showState("results");
     return;
   }
 
+  const videoChanged = videoId !== currentVideoId;
+
   // Every video change invalidates observer work and in-flight translations.
-  if (videoId !== currentVideoId) {
+  if (videoChanged) {
     translationGeneration += 1;
     if (transcriptScrollObserver) transcriptScrollObserver.disconnect();
     transcriptScrollObserver = null;
+    resetTranscriptSearch();
+    lastTranscriptScrollTop = 0;
+    pendingTranscriptViewState = await loadTranscriptViewState(videoId);
+    // An unseen video always starts in Original, so opening it never spends
+    // translation tokens. A saved choice is restored only for this video.
+    currentTranscriptMode = await loadDisplayLanguageMode(videoId);
+    document
+      .getElementById("contentArea")
+      ?.classList.toggle(
+        "restoring-transcript-view",
+        Boolean(pendingTranscriptViewState),
+      );
   }
 
   // Check cache for this video
@@ -565,6 +624,11 @@ async function startDigest(videoId, videoUrl) {
         transcriptParagraphCache.set(key, value);
       }
     }
+    if (cached.interfaceCache) {
+      for (const [key, value] of Object.entries(cached.interfaceCache)) {
+        interfaceTranslationCache.set(key, value);
+      }
+    }
 
     if (currentVideoTitle || currentChannelName) {
       const videoInfo = document.getElementById("videoInfo");
@@ -584,6 +648,7 @@ async function startDigest(videoId, videoUrl) {
 
     showState("results");
     document.getElementById("tabsNav").style.display = "flex";
+    restorePendingTranscriptViewState(videoId);
 
     // Load notes for this video
     loadNotes(videoId);
@@ -642,6 +707,7 @@ async function startDigest(videoId, videoUrl) {
   renderTranscript();
   showState("results");
   document.getElementById("tabsNav").style.display = "flex";
+  restorePendingTranscriptViewState(videoId);
 
   // Load notes for this video
   loadNotes(videoId);
@@ -661,6 +727,176 @@ async function startDigest(videoId, videoUrl) {
 // RENDERING
 // ============================================================
 
+function interfaceTranslationCacheKey(surface, id, text) {
+  return `${currentVideoId || "none"}:zh:${surface}:${id}:${text}`;
+}
+
+function getInterfaceTranslation(surface, id, text) {
+  return interfaceTranslationCache.get(
+    interfaceTranslationCacheKey(surface, id, text),
+  );
+}
+
+function renderLocalizedContent(text, surface, id) {
+  const original = String(text || "");
+  if (!original) return "";
+  const cacheKey = interfaceTranslationCacheKey(surface, id, original);
+  const translated = getInterfaceTranslation(surface, id, original);
+  if (currentTranscriptMode === "original") return escapeHtml(original);
+
+  const translation = translated
+    ? escapeHtml(translated)
+    : interfaceTranslationFailures.has(cacheKey)
+      ? '<span class="translation-error">Translation unavailable.</span>'
+      : '<span class="translation-pending">Translating...</span>';
+  if (currentTranscriptMode === "bilingual") {
+    return `<span class="localized-copy"><span class="localized-original">${escapeHtml(original)}</span><span class="localized-translation">${translation}</span></span>`;
+  }
+  return `<span class="localized-copy"><span class="localized-translation">${translation}</span></span>`;
+}
+
+function getLocalizedPlainText(text, surface, id) {
+  const original = String(text || "");
+  const translated = getInterfaceTranslation(surface, id, original);
+  if (currentTranscriptMode === "zh") return translated || original;
+  if (currentTranscriptMode === "bilingual" && translated) {
+    return `${original}\n\n${translated}`;
+  }
+  return original;
+}
+
+async function translateInterfaceSegments(surface, segments, rerender) {
+  if (currentTranscriptMode === "original" || !segments.length) return;
+  const generation = translationGeneration;
+  const videoId = currentVideoId;
+  const missing = segments
+    .filter((segment) => segment.text)
+    .map((segment) => ({
+      ...segment,
+      cacheKey: interfaceTranslationCacheKey(
+        surface,
+        segment.id,
+        segment.text,
+      ),
+    }))
+    .filter(
+      (segment) =>
+        !interfaceTranslationCache.has(segment.cacheKey) &&
+        !interfaceTranslationFailures.has(segment.cacheKey) &&
+        !interfaceTranslationInFlight.has(segment.cacheKey),
+    );
+  if (!missing.length) return;
+
+  missing.forEach((segment) => interfaceTranslationInFlight.add(segment.cacheKey));
+  setTranslatingSpinner(true);
+  try {
+    for (
+      let start = 0;
+      start < missing.length;
+      start += TRANSLATION_BATCH_SIZE
+    ) {
+      const batch = missing.slice(start, start + TRANSLATION_BATCH_SIZE);
+      let result;
+      try {
+        result = await sendTranslationMessage({
+          action: "translateContent",
+          content: {
+            segments: batch.map(({ id, text }) => ({ id, text })),
+          },
+          contentType: "interfaceBatch",
+          targetLanguage: "zh",
+          videoTitle: currentVideoTitle,
+        });
+      } catch (error) {
+        console.error("[YouTube Digest] Interface batch error:", error);
+        result = { success: false, error: error.message };
+      }
+      if (
+        generation !== translationGeneration ||
+        videoId !== currentVideoId ||
+        currentTranscriptMode === "original"
+      ) {
+        return;
+      }
+      const aligned = alignTranslatedSegmentBatch(
+        batch,
+        result?.success ? result.translatedContent?.segments : [],
+      );
+      aligned.forEach((item, index) => {
+        if (item.text) {
+          interfaceTranslationCache.set(batch[index].cacheKey, item.text);
+        } else {
+          interfaceTranslationFailures.add(batch[index].cacheKey);
+        }
+      });
+      // Match the Transcript UX: reveal and persist every small batch as soon
+      // as it returns instead of waiting for the full Overview or Notes list.
+      rerender();
+      await updateCache();
+    }
+  } catch (error) {
+    console.error("[YouTube Digest] Interface translation error:", error);
+    missing.forEach((segment) =>
+      interfaceTranslationFailures.add(segment.cacheKey),
+    );
+  } finally {
+    missing.forEach((segment) => interfaceTranslationInFlight.delete(segment.cacheKey));
+    setTranslatingSpinner(false);
+  }
+}
+
+function getOverviewTranslationSegments() {
+  if (!currentAnalysis) return [];
+  const segments = [];
+  (currentAnalysis.chapters || []).forEach((chapter, index) => {
+    if (chapter.title) {
+      segments.push({ id: `chapter-${index}-title`, text: chapter.title });
+    }
+    if (chapter.summary) {
+      segments.push({ id: `chapter-${index}-summary`, text: chapter.summary });
+    }
+  });
+  [...(currentAnalysis.keyQuotes || [])]
+    .sort((a, b) => (a.timestampSeconds || 0) - (b.timestampSeconds || 0))
+    .forEach((quote, index) => {
+      if (quote.quote) segments.push({ id: `quote-${index}`, text: quote.quote });
+    });
+  return segments;
+}
+
+function translateOverviewContent() {
+  return translateInterfaceSegments(
+    "overview",
+    getOverviewTranslationSegments(),
+    () => {
+      const contentArea = document.getElementById("contentArea");
+      const scrollTop = contentArea?.scrollTop || 0;
+      renderAnalysisResults(currentAnalysis);
+      if (contentArea) contentArea.scrollTop = scrollTop;
+    },
+  );
+}
+
+function getNoteTranslationId(note, index) {
+  const stablePart = String(note.id || note.createdAt || index)
+    .replace(/[^A-Za-z0-9_-]/g, "-")
+    .slice(0, 96);
+  return `note-${stablePart || index}`;
+}
+
+function translateNotesContent() {
+  const segments = currentNotes.map((note, index) => ({
+    id: getNoteTranslationId(note, index),
+    text: note.text || "",
+  }));
+  return translateInterfaceSegments("notes", segments, () => {
+    const contentArea = document.getElementById("contentArea");
+    const scrollTop = contentArea?.scrollTop || 0;
+    renderNotes(currentNotes, currentNotesFilterVideoId);
+    if (contentArea) contentArea.scrollTop = scrollTop;
+  });
+}
+
 /**
  * Renders the analysis results into the Overview tab.
  * Shows chapters and key quotes only.
@@ -669,15 +905,15 @@ function renderAnalysisResults(analysis) {
   // Chapters
   const chapterList = document.getElementById("chapterList");
   chapterList.innerHTML = "";
-  (analysis.chapters || []).forEach((chapter) => {
+  (analysis.chapters || []).forEach((chapter, index) => {
     const li = document.createElement("li");
     li.className = "chapter-item";
     li.dataset.seconds = chapter.timestampSeconds;
     li.innerHTML = `
       <span class="chapter-timestamp">${escapeHtml(chapter.timestamp)}</span>
       <div class="chapter-content">
-        <span class="chapter-title">${escapeHtml(chapter.title)}</span>
-        <span class="chapter-summary">${escapeHtml(chapter.summary || "")}</span>
+        <span class="chapter-title">${renderLocalizedContent(chapter.title, "overview", `chapter-${index}-title`)}</span>
+        <span class="chapter-summary">${renderLocalizedContent(chapter.summary || "", "overview", `chapter-${index}-summary`)}</span>
       </div>
     `;
     li.addEventListener("click", () => {
@@ -697,17 +933,17 @@ function renderAnalysisResults(analysis) {
   const sortedQuotes = [...(analysis.keyQuotes || [])].sort(
     (a, b) => (a.timestampSeconds || 0) - (b.timestampSeconds || 0),
   );
-  sortedQuotes.forEach((quote) => {
+  sortedQuotes.forEach((quote, index) => {
     const div = document.createElement("div");
     div.className = "quote-item";
     div.dataset.seconds = quote.timestampSeconds;
     div.innerHTML = `
-      <div class="quote-text">${escapeHtml(quote.quote)}</div>
+      <div class="quote-text">${renderLocalizedContent(quote.quote, "overview", `quote-${index}`)}</div>
       <div class="quote-meta">
         <span class="quote-timestamp">${escapeHtml(quote.timestamp)}</span>
         <div class="quote-actions">
-          <button class="quote-save-note-btn" title="Save this quote as a note">📝 Note</button>
-          <button class="quote-copy-btn" title="Copy this quote">⧉ Copy</button>
+          <button class="quote-save-note-btn" title="Save this quote as a note">Note</button>
+          <button class="quote-copy-btn" title="Copy this quote">Copy</button>
         </div>
       </div>
     `;
@@ -724,10 +960,12 @@ function renderAnalysisResults(analysis) {
     quoteCopyBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       try {
-        await navigator.clipboard.writeText(quote.quote);
-        quoteCopyBtn.textContent = "✓ Copied";
+        await navigator.clipboard.writeText(
+          getLocalizedPlainText(quote.quote, "overview", `quote-${index}`),
+        );
+        quoteCopyBtn.textContent = "Copied";
         setTimeout(() => {
-          quoteCopyBtn.textContent = "⧉ Copy";
+          quoteCopyBtn.textContent = "Copy";
         }, 1500);
       } catch (err) {
         console.error("Copy failed:", err);
@@ -742,6 +980,13 @@ function renderAnalysisResults(analysis) {
 
     quotesList.appendChild(div);
   });
+
+  if (
+    currentTranscriptMode !== "original" &&
+    resultTabIsActive("overview")
+  ) {
+    void translateOverviewContent();
+  }
 }
 
 /**
@@ -764,7 +1009,7 @@ async function saveQuoteAsNote(quote, btn) {
     });
 
     if (result.success) {
-      btn.textContent = "✓ Saved";
+      btn.textContent = "Saved";
       setTimeout(() => {
         btn.textContent = originalText;
         btn.disabled = false;
@@ -835,17 +1080,8 @@ function renderTranscript() {
   const transcriptList = document.getElementById("transcriptList");
   transcriptList.innerHTML = "";
 
-  // Show a small badge indicating the transcript came from the video's
-  // existing subtitles. (We no longer AI-transcribe audio, so subtitles
-  // are the only source.)
   const existingBadge = document.getElementById("transcriptSourceBadge");
   if (existingBadge) existingBadge.remove();
-
-  const badge = document.createElement("div");
-  badge.id = "transcriptSourceBadge";
-  badge.className = "transcript-source-badge";
-  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> From video subtitles · ${escapeHtml(getOriginalTranscriptLabel())}`;
-  transcriptList.parentElement.insertBefore(badge, transcriptList);
 
   // Group entries using smart sentence-boundary + time-guardrail logic
   const grouped = groupTranscriptEntries(currentTranscript);
@@ -870,16 +1106,265 @@ function renderTranscript() {
     transcriptList.appendChild(div);
   });
 
+  // Reapply an active query after a language mode rerenders the transcript.
+  refreshTranscriptSearch({ preserveIndex: false, scroll: false });
+
   // Start tracking video playback for auto-scroll
   startPlaybackTracking();
 }
 
+// ============================================================
+// TRANSCRIPT SEARCH
+// ============================================================
+
+/**
+ * Finds separate, case-insensitive literal matches. A literal search is
+ * important here because punctuation such as "." must be treated as transcript
+ * text, not as a regular expression command.
+ */
+function findLiteralTranscriptMatches(text, query) {
+  const source = String(text || "");
+  const needle = String(query || "").trim();
+  if (!needle) return [];
+
+  const escapedNeedle = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matcher = new RegExp(escapedNeedle, "giu");
+  const matches = [];
+  for (const match of source.matchAll(matcher)) {
+    matches.push({ start: match.index, end: match.index + match[0].length });
+  }
+
+  return matches;
+}
+
+/**
+ * Removes old marks before a new search. Restoring plain text first prevents
+ * nested marks when the user types one more letter into the search field.
+ */
+function clearTranscriptSearchHighlights() {
+  document
+    .querySelectorAll("#transcriptList mark.transcript-search-highlight")
+    .forEach((mark) => {
+      const parent = mark.parentNode;
+      mark.replaceWith(document.createTextNode(mark.textContent || ""));
+      parent?.normalize();
+    });
+
+  document
+    .querySelectorAll("#transcriptList .transcript-entry.search-current")
+    .forEach((row) => row.classList.remove("search-current"));
+}
+
+/**
+ * Replaces matching parts of one text node with mark elements. We collect all
+ * text nodes before changing the DOM, so each replacement is safe and stable.
+ */
+function markTranscriptTextNode(textNode, query) {
+  const ranges = findLiteralTranscriptMatches(textNode.nodeValue, query);
+  if (!ranges.length) return [];
+
+  const fragment = document.createDocumentFragment();
+  const marks = [];
+  let cursor = 0;
+
+  ranges.forEach(({ start, end }) => {
+    if (start > cursor) {
+      fragment.appendChild(
+        document.createTextNode(textNode.nodeValue.slice(cursor, start)),
+      );
+    }
+
+    const mark = document.createElement("mark");
+    mark.className = "transcript-search-highlight";
+    mark.textContent = textNode.nodeValue.slice(start, end);
+    fragment.appendChild(mark);
+    marks.push(mark);
+    cursor = end;
+  });
+
+  if (cursor < textNode.nodeValue.length) {
+    fragment.appendChild(
+      document.createTextNode(textNode.nodeValue.slice(cursor)),
+    );
+  }
+
+  textNode.parentNode.replaceChild(fragment, textNode);
+  return marks;
+}
+
+/**
+ * Updates the result count and navigation buttons from the current search
+ * state. The live output gives the same information to screen reader users.
+ */
+function updateTranscriptSearchControls(query) {
+  const count = document.getElementById("transcriptSearchCount");
+  const previous = document.getElementById("transcriptSearchPrevBtn");
+  const next = document.getElementById("transcriptSearchNextBtn");
+  const hasMatches = transcriptSearchMatches.length > 0;
+
+  if (count) {
+    count.textContent = !query
+      ? ""
+      : hasMatches
+        ? `${transcriptSearchIndex + 1} of ${transcriptSearchMatches.length}`
+        : "No matches";
+  }
+  if (previous) previous.disabled = !hasMatches;
+  if (next) next.disabled = !hasMatches;
+}
+
+/**
+ * Shows which match is current. Search navigation pauses automatic transcript
+ * following, so playback cannot pull the user away from the result they found.
+ */
+function revealCurrentTranscriptSearchMatch({ scroll = true } = {}) {
+  transcriptSearchMatches.forEach((mark) => mark.classList.remove("current"));
+  document
+    .querySelectorAll("#transcriptList .transcript-entry.search-current")
+    .forEach((row) => row.classList.remove("search-current"));
+
+  const mark = transcriptSearchMatches[transcriptSearchIndex];
+  if (!mark) return;
+
+  mark.classList.add("current");
+  mark.closest(".transcript-entry")?.classList.add("search-current");
+
+  if (!scroll) return;
+  if (autoScrollInterval) {
+    autoScrollEnabled = false;
+    document.getElementById("followPlaybackBtn").style.display = "block";
+  }
+  mark.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+/**
+ * Searches the transcript that is visible now. This means Original searches
+ * source subtitles, Chinese searches translated text, and Bilingual searches
+ * both columns. Translated rows call this again as their text arrives.
+ */
+function refreshTranscriptSearch({ preserveIndex = false, scroll = true } = {}) {
+  const input = document.getElementById("transcriptSearchInput");
+  const clearButton = document.getElementById("transcriptSearchClearBtn");
+  const query = String(input?.value || "").trim();
+  const previousIndex = transcriptSearchIndex;
+
+  clearTranscriptSearchHighlights();
+  transcriptSearchMatches = [];
+  transcriptSearchIndex = -1;
+  if (clearButton) clearButton.hidden = !input?.value;
+
+  if (!query) {
+    updateTranscriptSearchControls(query);
+    return;
+  }
+
+  document
+    .querySelectorAll("#transcriptList .transcript-entry")
+    .forEach((row) => {
+      const content = row.querySelector(".transcript-text, .transcript-copy");
+      if (!content) return;
+
+      const textNodes = [];
+      const walker = document.createTreeWalker(
+        content,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            const parent = node.parentElement;
+            if (!node.nodeValue || parent?.closest("button")) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        },
+      );
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach((node) => {
+        transcriptSearchMatches.push(...markTranscriptTextNode(node, query));
+      });
+    });
+
+  if (transcriptSearchMatches.length) {
+    transcriptSearchIndex = preserveIndex
+      ? Math.min(Math.max(previousIndex, 0), transcriptSearchMatches.length - 1)
+      : 0;
+    revealCurrentTranscriptSearchMatch({ scroll });
+  }
+  updateTranscriptSearchControls(query);
+}
+
+/**
+ * Moves through results in a loop, like the browser's built-in Find control.
+ */
+function moveTranscriptSearch(direction) {
+  if (!transcriptSearchMatches.length) return;
+  transcriptSearchIndex =
+    (transcriptSearchIndex + direction + transcriptSearchMatches.length) %
+    transcriptSearchMatches.length;
+  revealCurrentTranscriptSearchMatch();
+  updateTranscriptSearchControls(
+    document.getElementById("transcriptSearchInput")?.value.trim(),
+  );
+}
+
+/**
+ * Clears search when the user opens a different video. A query for the old
+ * video is unlikely to help and can make the next transcript look empty.
+ */
+function resetTranscriptSearch({ focus = false } = {}) {
+  const input = document.getElementById("transcriptSearchInput");
+  if (input) input.value = "";
+  refreshTranscriptSearch({ scroll: false });
+  if (focus) input?.focus();
+}
+
+/**
+ * Wires mouse and keyboard controls once when the side panel starts.
+ */
+function setupTranscriptSearch() {
+  const input = document.getElementById("transcriptSearchInput");
+  const clearButton = document.getElementById("transcriptSearchClearBtn");
+  const previous = document.getElementById("transcriptSearchPrevBtn");
+  const next = document.getElementById("transcriptSearchNextBtn");
+  if (!input) return;
+
+  input.addEventListener("input", () => refreshTranscriptSearch());
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      moveTranscriptSearch(event.shiftKey ? -1 : 1);
+    } else if (event.key === "Escape" && input.value) {
+      event.preventDefault();
+      resetTranscriptSearch({ focus: true });
+    }
+  });
+
+  clearButton?.addEventListener("click", () => {
+    resetTranscriptSearch({ focus: true });
+  });
+  previous?.addEventListener("click", () => moveTranscriptSearch(-1));
+  next?.addEventListener("click", () => moveTranscriptSearch(1));
+}
+
+function getDisplayedTranscriptText() {
+  if (currentTranscriptMode === "original") return currentTranscriptText || "";
+  return getActiveTranscriptSegments()
+    .map((segment) => {
+      const translated = transcriptParagraphCache.get(
+        transcriptTranslationCacheKey(segment),
+      );
+      if (currentTranscriptMode === "zh") return translated || segment.text;
+      return translated ? `${segment.text}\n${translated}` : segment.text;
+    })
+    .join("\n\n");
+}
+
 function copyTranscript() {
-  copyToClipboardWithFeedback(currentTranscriptText || "", "copyTranscriptBtn");
+  copyToClipboardWithFeedback(getDisplayedTranscriptText(), "copyTranscriptBtn");
 }
 
 function exportTranscript() {
-  const transcriptContent = currentTranscriptText || "";
+  const transcriptContent = getDisplayedTranscriptText();
   const videoUrl = `https://youtube.com/watch?v=${currentVideoId}`;
 
   let exportText = "";
@@ -902,6 +1387,10 @@ function exportTranscript() {
   const filename = `${sanitizeFilename(currentVideoTitle)}-transcript.txt`;
   downloadTextFile(exportText, filename);
 }
+
+// ============================================================
+// UI STATE MANAGEMENT
+// ============================================================
 
 function buildObsidianSegments() {
   return getActiveTranscriptSegments().map((segment) => ({
@@ -984,13 +1473,26 @@ function buildYouTubeLearningDocument() {
   };
 }
 
+function buildYouTubeGrowthContext() {
+  if (!currentVideoId || !currentTranscript) return null;
+  const doc = buildYouTubeLearningDocument();
+  return { videoId: currentVideoId, title: doc.title, url: doc.url, transcript: doc.mainContent,
+    overview: currentAnalysis ? JSON.stringify(currentAnalysis) : "" };
+}
+
 function syncCurrentVideoToObsidian() {
   if (youtubeObsidianSaveInFlight) return youtubeObsidianSaveInFlight;
+  if (growthPanel?.isBusy()) {
+    document.getElementById("obsidianSyncStatus").textContent = "请先等待对话完成或点击停止，再保存。";
+    return Promise.resolve();
+  }
   const button = document.getElementById("syncObsidianBtn");
   button.disabled = true;
+  growthPanel?.setSaving(true);
   youtubeObsidianSaveInFlight = performCurrentVideoObsidianSave().finally(() => {
     youtubeObsidianSaveInFlight = null;
-    button.disabled = false;
+    button.disabled = !currentTranscript || !panelIsShowingResults();
+    growthPanel?.setSaving(false);
   });
   return youtubeObsidianSaveInFlight;
 }
@@ -998,21 +1500,28 @@ function syncCurrentVideoToObsidian() {
 async function performCurrentVideoObsidianSave() {
   const status = document.getElementById("obsidianSyncStatus");
   if (!currentVideoId || !currentTranscript) return;
-  status.textContent = "Preparing…";
+  const savingVideoId = currentVideoId;
+  const selectedVideoStillCurrent = growthPanel?.captureGuard() || (() => currentVideoId === savingVideoId);
+  const assertSaveCurrent = () => {
+    if (currentVideoId !== savingVideoId || !selectedVideoStillCurrent()) throw new Error("视频已切换或操作已停止，此次保存已取消。");
+  };
+  status.textContent = "正在准备保存…";
   try {
     const segments = getActiveTranscriptSegments();
     const hasMissing = segments.some(
       (segment) => !transcriptParagraphCache.has(transcriptTranslationCacheKey(segment)),
     );
     if (hasMissing && !window.confirm("部分中文翻译尚未生成。同步前补全翻译可能产生 DeepSeek 用量，是否继续？")) {
-      status.textContent = "Cancelled";
+      status.textContent = "已取消保存";
       return;
     }
     if (hasMissing) {
-      status.textContent = "Translating…";
+      status.textContent = "正在补全中文字幕…";
       await ensureObsidianTranslations(segments);
     }
+    assertSaveCurrent();
     const learningDocument = buildYouTubeLearningDocument();
+    const growthContext = buildYouTubeGrowthContext();
     const metadata = {
       title: learningDocument.title,
       videoId: learningDocument.metadata.videoId,
@@ -1022,6 +1531,9 @@ async function performCurrentVideoObsidianSave() {
       duration: learningDocument.metadata.duration,
     };
     const obsidianSegments = buildObsidianSegments();
+    if (growthPanel) status.textContent = "正在检查对话并准备成长报告…";
+    const conversationReport = growthPanel ? await growthPanel.prepareReport(growthContext) : null;
+    assertSaveCurrent();
     const target = await chrome.runtime.sendMessage({
       action: "resolveLearningObsidianTarget",
       metadata,
@@ -1029,20 +1541,23 @@ async function performCurrentVideoObsidianSave() {
     if (!target?.success || !target.markdownPath || !target.canvasPath) {
       throw new Error(target?.error || "Obsidian 目标路径解析失败。");
     }
+    assertSaveCurrent();
     const saveKey = JSON.stringify({
       learningDocument,
       metadata: { ...metadata, capturedAt: undefined },
       segments: obsidianSegments,
       markdownPath: target.markdownPath,
       canvasPath: target.canvasPath,
+      conversationReport: conversationReport?.markdown || null,
     });
     if (pendingYouTubeLearningSave?.key !== saveKey) {
       pendingYouTubeLearningSave = null;
-      status.textContent = "Analyzing content…";
+      status.textContent = "正在生成中文总结、趋势、扩展知识和思维导图…";
       const preparation = await chrome.runtime.sendMessage({
         type: "learning:prepare",
         payload: { document: learningDocument },
       });
+      assertSaveCurrent();
       if (!preparation?.ok || !preparation.value?.outputs || !preparation.value?.markdown || !preparation.value?.canvas) {
         throw new Error(preparation?.error || "AI 学习结果生成失败，请重试。");
       }
@@ -1056,41 +1571,44 @@ async function performCurrentVideoObsidianSave() {
           outputs: learningResult.outputs,
           markdown: learningResult.markdown,
           canvas: learningResult.canvas,
+          conversationReport: conversationReport?.markdown || null,
           expectedPaths: {
             markdownPath: target.markdownPath,
             canvasPath: target.canvasPath,
           },
         },
-        files: { markdown: false, canvas: false },
+        files: { markdown: false, canvas: false, report: !conversationReport },
       };
     }
     const prepared = pendingYouTubeLearningSave;
-    status.textContent = "Generating mind map…";
-    status.textContent = "Writing Markdown + Canvas…";
+    assertSaveCurrent();
+    status.textContent = "正在写入笔记和思维导图…";
     const response = await chrome.runtime.sendMessage({
       ...prepared.message,
       artifacts: {
         markdown: !prepared.files.markdown,
         canvas: !prepared.files.canvas,
+        report: !prepared.files.report,
       },
     });
     prepared.files.markdown ||= Boolean(response?.files?.markdown);
     prepared.files.canvas ||= Boolean(response?.files?.canvas);
-    if (!response?.success || !response.files?.markdown || !response.files?.canvas) {
+    prepared.files.report ||= Boolean(response?.files?.report);
+    if (!response?.success || !response.files?.markdown || !response.files?.canvas || (prepared.message.conversationReport && !response.files?.report)) {
       throw new Error(response?.error || "同步失败。");
     }
-    status.textContent = `Saved: ${response.markdownPath} + ${response.canvasPath}`;
+    status.textContent = `已保存：笔记 ${response.markdownPath}；思维导图 ${response.canvasPath}${response.reportPath ? `；成长报告 ${response.reportPath}` : ""}`;
     pendingYouTubeLearningSave = null;
   } catch (error) {
     status.textContent = error.message || "同步失败。请检查 Obsidian 设置。";
   }
 }
 
-// ============================================================
-// UI STATE MANAGEMENT
-// ============================================================
 
 function showState(state) {
+  if (growthPanel) void growthPanel.syncContext(state === "results" ? buildYouTubeGrowthContext() : null);
+  const obsidianButton = document.getElementById("syncObsidianBtn");
+  if (obsidianButton) obsidianButton.disabled = state !== "results" || !currentTranscript;
   document.getElementById("welcomeState").style.display =
     state === "welcome" ? "flex" : "none";
   document.getElementById("loadingState").style.display =
@@ -1108,8 +1626,8 @@ function showState(state) {
   // which is why the tabs could vanish when re-opening an already-analyzed video.
   document.getElementById("tabsNav").style.display =
     state === "results" ? "flex" : "none";
-  const obsidianButton = document.getElementById("syncObsidianBtn");
-  if (obsidianButton) obsidianButton.disabled = state !== "results" || !currentTranscript;
+  document.getElementById("transcriptModeControl").style.display =
+    state === "results" ? "inline-flex" : "none";
 
   if (state !== "results") {
     stopPlaybackTracking();
@@ -1147,6 +1665,13 @@ function showConfigError(configStatus) {
 // ============================================================
 
 function switchTab(tabName) {
+  // Capture the transcript position before another tab reuses the same scroll
+  // area. Scrolling Overview or Notes must not replace this value.
+  if (tabName !== "transcript" && transcriptTabIsActive()) {
+    captureCurrentTranscriptScrollTop();
+    dismissSelectionActions(true);
+  }
+
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === tabName);
   });
@@ -1157,14 +1682,50 @@ function switchTab(tabName) {
 
   // Start/stop playback tracking based on which tab is active
   if (tabName === "transcript") {
+    // Notes always opens at the top, so restore the independent transcript
+    // reading position when the user returns here.
+    requestAnimationFrame(() => {
+      const contentArea = document.getElementById("contentArea");
+      if (!contentArea || !transcriptTabIsActive()) return;
+      lastAutoScrollTime = Date.now();
+      contentArea.scrollTop = lastTranscriptScrollTop;
+    });
     startPlaybackTracking();
   } else {
     stopPlaybackTracking();
   }
 
-  // Lazy-load LLM analysis when user switches to Overview tab
-  if (tabName === "overview" && !currentAnalysis && !isAnalysisLoading) {
-    triggerAnalysis();
+  // Saved notes are stored newest first. Open Notes at the top so the note the
+  // user just created is the first item they see.
+  if (tabName === "notes") {
+    requestAnimationFrame(() => {
+      const contentArea = document.getElementById("contentArea");
+      const notesPanelIsActive = document.querySelector(
+        '.tab-panel[data-panel="notes"].active',
+      );
+      if (contentArea && notesPanelIsActive) contentArea.scrollTop = 0;
+    });
+  }
+
+  // Translate only the visible tab. This prevents hidden surfaces from using
+  // tokens or competing with the batch queue the user is waiting for.
+  if (tabName === "overview") {
+    if (!currentAnalysis && !isAnalysisLoading) {
+      triggerAnalysis();
+    } else if (currentAnalysis && currentTranscriptMode !== "original") {
+      void translateOverviewContent();
+    }
+  } else if (
+    tabName === "notes" &&
+    currentTranscriptMode !== "original"
+  ) {
+    void translateNotesContent();
+  } else if (
+    tabName === "transcript" &&
+    currentTranscriptMode !== "original" &&
+    !transcriptScrollObserver
+  ) {
+    void translateTranscript();
   }
 }
 
@@ -1336,7 +1897,7 @@ async function copyToClipboardWithFeedback(text, buttonId) {
 
   const success = await copyToClipboard(text);
   if (success) {
-    btn.textContent = "✓ Copied";
+    btn.textContent = "Copied";
     setTimeout(() => {
       btn.textContent = original;
     }, 2000);
@@ -1362,33 +1923,55 @@ function sanitizeFilename(str) {
 }
 
 // ============================================================
-// TEXT SELECTION — EXPLAIN FEATURE
+// TEXT SELECTION ACTIONS
 // ============================================================
 
 /**
+ * Hides actions that belong only to a live transcript selection. Clearing the
+ * browser range also prevents the toolbar from returning on another tab.
+ */
+function dismissSelectionActions(clearSelection = false) {
+  const tooltip = document.getElementById("explainTooltip");
+  if (tooltip) tooltip.style.display = "none";
+  if (clearSelection) window.getSelection()?.removeAllRanges();
+}
+
+/**
  * Sets up text selection handling in the transcript.
- * When user selects text, shows an "Explain" button.
+ * When the user selects text, shows Explain and Note actions.
  */
 function setupExplainFeature() {
   const transcriptList = document.getElementById("transcriptList");
   if (!transcriptList) return;
 
+  // This setup can run again after a cached transcript render. Abort old
+  // document listeners so one selection creates only one action toolbar.
+  selectionActionsController?.abort();
+  selectionActionsController = new AbortController();
+  const selectionSignal = selectionActionsController.signal;
+
   // Remove existing tooltip if any
   const existingTooltip = document.getElementById("explainTooltip");
   if (existingTooltip) existingTooltip.remove();
 
-  // Create the explain tooltip/button
+  // Create one small toolbar for actions on the selected transcript text.
   const tooltip = document.createElement("div");
   tooltip.id = "explainTooltip";
   tooltip.className = "explain-tooltip";
-  tooltip.innerHTML = `<button class="explain-btn">💡 Explain</button>`;
+  tooltip.setAttribute("role", "toolbar");
+  tooltip.setAttribute("aria-label", "Selected transcript actions");
+  tooltip.innerHTML = `
+    <button class="explain-btn" type="button">Explain</button>
+    <button class="selection-note-btn" type="button">Note</button>
+  `;
   tooltip.style.display = "none";
   document.body.appendChild(tooltip);
 
   let selectedText = "";
+  let selectedTimestamp = 0;
 
-  // Interacting with Explain must preserve the transcript selection and stay
-  // isolated from document/row click behavior.
+  // Interacting with either action must preserve the transcript selection and
+  // stay isolated from document and row click behavior.
   tooltip.addEventListener("mousedown", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -1401,35 +1984,56 @@ function setupExplainFeature() {
   });
 
   // Listen for text selection
-  document.addEventListener("mouseup", (e) => {
-    const selection = window.getSelection();
-    const text = selection.toString().trim();
+  document.addEventListener(
+    "mouseup",
+    () => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim() || "";
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
 
-    // Only show if selecting within transcript
-    const isInTranscript = transcriptList.contains(selection.anchorNode);
+      // Both ends must be inside the transcript. The first selected row
+      // supplies the timestamp when the selection spans more than one row.
+      const isInTranscript = Boolean(
+        range &&
+          transcriptList.contains(range.startContainer) &&
+          transcriptList.contains(range.endContainer),
+      );
 
-    // Allow any selection length (removed 10+ char requirement)
-    if (text.length > 0 && isInTranscript) {
-      selectedText = text;
+      // Allow any selection length.
+      if (text.length > 0 && isInTranscript) {
+        selectedText = text;
+        const startElement =
+          range.startContainer.nodeType === 1
+            ? range.startContainer
+            : range.startContainer.parentElement;
+        const selectedRow = startElement?.closest(".transcript-entry");
+        const rowSeconds = Number(selectedRow?.dataset.seconds);
+        selectedTimestamp = Number.isFinite(rowSeconds) ? rowSeconds : 0;
 
-      // Position the tooltip near the selection
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-
-      tooltip.style.display = "block";
-      tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
-      tooltip.style.left = `${rect.left + rect.width / 2}px`;
-    } else {
-      tooltip.style.display = "none";
-    }
-  });
+        // Set the final coordinates while the toolbar is still hidden. If it
+        // becomes visible first, Chrome paints it at its default left edge for
+        // one frame before moving it to the selection center.
+        const rect = range.getBoundingClientRect();
+        tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
+        tooltip.style.left = `${rect.left + rect.width / 2}px`;
+        tooltip.style.display = "flex";
+      } else {
+        tooltip.style.display = "none";
+      }
+    },
+    { signal: selectionSignal },
+  );
 
   // Hide tooltip when clicking elsewhere
-  document.addEventListener("mousedown", (e) => {
-    if (!tooltip.contains(e.target)) {
-      tooltip.style.display = "none";
-    }
-  });
+  document.addEventListener(
+    "mousedown",
+    (event) => {
+      if (!tooltip.contains(event.target)) {
+        tooltip.style.display = "none";
+      }
+    },
+    { signal: selectionSignal },
+  );
 
   // Handle explain button click
   tooltip
@@ -1441,6 +2045,51 @@ function setupExplainFeature() {
 
       tooltip.style.display = "none";
       await showExplanation(selectedText);
+    });
+
+  // Save the exact selected words at the first selected transcript row. This
+  // action does not move playback and does not ask the AI to rewrite the text.
+  tooltip
+    .querySelector(".selection-note-btn")
+    .addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!selectedText || !currentVideoId) return;
+
+      const button = event.currentTarget;
+      const originalText = button.textContent;
+      button.textContent = "Saving...";
+      button.disabled = true;
+
+      try {
+        const result = await chrome.runtime.sendMessage({
+          action: "saveNote",
+          videoId: currentVideoId,
+          timestamp: selectedTimestamp,
+          videoTitle: currentVideoTitle,
+          channelName: currentChannelName,
+          selectedText,
+        });
+
+        if (!result?.success) {
+          throw new Error(result?.error || "Could not save note");
+        }
+
+        button.textContent = "Saved";
+        loadNotes(currentVideoId);
+        setTimeout(() => {
+          tooltip.style.display = "none";
+          button.textContent = originalText;
+          button.disabled = false;
+        }, 900);
+      } catch (error) {
+        console.error("[YouTube Digest] Save selected note error:", error);
+        button.textContent = "Error";
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.disabled = false;
+        }, 1500);
+      }
     });
 }
 
@@ -1456,7 +2105,7 @@ async function showExplanation(selectedText) {
     <div class="explain-modal">
       <div class="explain-modal-header">
         <div class="explain-modal-title">Explain</div>
-        <button class="explain-modal-close" id="closeExplain">✕</button>
+        <button class="explain-modal-close" id="closeExplain">Close</button>
       </div>
       <div class="explain-selected-text">"${escapeHtml(selectedText.substring(0, 200))}${selectedText.length > 200 ? "..." : ""}"</div>
       <div class="explain-modal-content" id="explanationContent">
@@ -1539,6 +2188,12 @@ async function saveToCache(videoId) {
         paragraphCacheForVideo[key] = value;
       }
     }
+    const interfaceCacheForVideo = {};
+    for (const [key, value] of interfaceTranslationCache.entries()) {
+      if (key.startsWith(`${videoId}:`)) {
+        interfaceCacheForVideo[key] = value;
+      }
+    }
 
     const cacheData = {
       analysis: currentAnalysis, // May be null if not yet analyzed
@@ -1549,6 +2204,7 @@ async function saveToCache(videoId) {
       videoTitle: currentVideoTitle,
       channelName: currentChannelName,
       paragraphCache: paragraphCacheForVideo,
+      interfaceCache: interfaceCacheForVideo,
       timestamp: Date.now(),
     };
 
@@ -1660,6 +2316,8 @@ async function loadNotes(videoId) {
     });
 
     if (result.success) {
+      currentNotes = result.notes || [];
+      currentNotesFilterVideoId = videoId;
       renderNotes(result.notes, videoId);
     }
   } catch (error) {
@@ -1681,27 +2339,36 @@ function renderNotes(notes, filteredVideoId) {
   if (!notes || notes.length === 0) {
     notesIntro.style.display = "block";
     notesIntro.textContent = filteredVideoId
-      ? "No notes for this video yet. Hover over the video and click 📝 Note to save."
-      : "No notes saved yet. Hover over a video and click 📝 Note to save.";
+      ? "No notes for this video yet. Hover over the video and click Note to save."
+      : "No notes saved yet. Hover over a video and click Note to save.";
     return;
   }
 
   notesIntro.style.display = "none";
 
-  notes.forEach((note) => {
+  notes.forEach((note, index) => {
+    const translationId = getNoteTranslationId(note, index);
     const noteEl = document.createElement("div");
     noteEl.className = "note-item";
     noteEl.innerHTML = `
       <div class="note-header">
         <span class="note-timestamp" data-url="${escapeHtml(note.timestampedUrl)}" data-seconds="${Number(note.timestampSeconds) || 0}">${escapeHtml(note.timestamp)}</span>
         ${!filteredVideoId ? `<span class="note-video-title">${escapeHtml(note.videoTitle)}</span>` : ""}
-        <button class="note-delete" data-id="${escapeHtml(note.id)}" title="Delete note">✕</button>
       </div>
-      <div class="note-text">"${escapeHtml(note.text)}"</div>
+      <div class="note-text">${renderLocalizedContent(note.text, "notes", translationId)}</div>
       <div class="note-actions">
-        <button class="note-action-btn note-copy-text">⧉ Copy text</button>
-        <button class="note-action-btn note-copy-link" data-url="${escapeHtml(note.timestampedUrl)}">🔗 Copy timestamp</button>
-        <button class="note-action-btn note-play" data-seconds="${Number(note.timestampSeconds) || 0}">▶ Play</button>
+        <button class="note-action-btn note-copy-text">Copy text</button>
+        <button class="note-action-btn note-copy-link" data-url="${escapeHtml(note.timestampedUrl)}">Copy timestamp</button>
+        <button class="note-action-btn note-play" data-seconds="${Number(note.timestampSeconds) || 0}">Play</button>
+        <button class="note-delete" data-id="${escapeHtml(note.id)}" type="button" aria-label="Delete note" title="Delete note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18"></path>
+            <path d="M8 6V4h8v2"></path>
+            <path d="m19 6-1 14H6L5 6"></path>
+            <path d="M10 11v5"></path>
+            <path d="M14 11v5"></path>
+          </svg>
+        </button>
       </div>
     `;
 
@@ -1724,11 +2391,13 @@ function renderNotes(notes, filteredVideoId) {
       .querySelector(".note-copy-text")
       .addEventListener("click", async () => {
         try {
-          await navigator.clipboard.writeText(note.text);
+          await navigator.clipboard.writeText(
+            getLocalizedPlainText(note.text, "notes", translationId),
+          );
           const btn = noteEl.querySelector(".note-copy-text");
-          btn.textContent = "✓ Copied!";
+          btn.textContent = "Copied";
           setTimeout(() => {
-            btn.textContent = "⧉ Copy text";
+            btn.textContent = "Copy text";
           }, 2000);
         } catch (err) {
           console.error("Copy failed:", err);
@@ -1742,9 +2411,9 @@ function renderNotes(notes, filteredVideoId) {
         try {
           await navigator.clipboard.writeText(note.timestampedUrl);
           const btn = noteEl.querySelector(".note-copy-link");
-          btn.textContent = "✓ Copied!";
+          btn.textContent = "Copied";
           setTimeout(() => {
-            btn.textContent = "🔗 Copy timestamp";
+            btn.textContent = "Copy timestamp";
           }, 2000);
         } catch (err) {
           console.error("Copy failed:", err);
@@ -1758,6 +2427,10 @@ function renderNotes(notes, filteredVideoId) {
 
     notesList.appendChild(noteEl);
   });
+
+  if (currentTranscriptMode !== "original" && resultTabIsActive("notes")) {
+    void translateNotesContent();
+  }
 }
 
 /**
@@ -1792,8 +2465,11 @@ function startPlaybackTracking() {
   // Don't restart if already tracking (preserves user's auto-scroll state)
   if (autoScrollInterval) return;
 
-  autoScrollEnabled = true;
-  document.getElementById("followPlaybackBtn").style.display = "none";
+  const willRestoreReadingPosition =
+    pendingTranscriptViewState?.videoId === currentVideoId;
+  autoScrollEnabled = !willRestoreReadingPosition;
+  document.getElementById("followPlaybackBtn").style.display =
+    willRestoreReadingPosition ? "block" : "none";
 
   // Poll video time every 500ms
   autoScrollInterval = setInterval(() => playbackTrackingTick(), 500);
@@ -1912,6 +2588,8 @@ function highlightActiveEntry(currentSeconds) {
  * can read at their own pace without being yanked back.
  */
 function onContentAreaScroll() {
+  scheduleTranscriptViewStateSave();
+
   // Ignore scroll events within 1 second of a programmatic scroll
   // (smooth scroll animations can last longer than a simple boolean flag)
   if (Date.now() - lastAutoScrollTime < 1000) return;
@@ -1923,15 +2601,181 @@ function onContentAreaScroll() {
   }
 }
 
+/**
+ * Uses session storage when it is available. Local storage is a safe fallback
+ * for older test or browser environments that do not expose session storage.
+ */
+function getTranscriptViewStateStorage() {
+  return chrome.storage.session || chrome.storage.local;
+}
+
+/**
+ * Reads one video's last visible transcript position.
+ */
+async function loadTranscriptViewState(videoId) {
+  if (!videoId) return null;
+  try {
+    const result = await getTranscriptViewStateStorage().get(
+      TRANSCRIPT_VIEW_STATE_KEY,
+    );
+    const state = result?.[TRANSCRIPT_VIEW_STATE_KEY]?.[videoId];
+    const scrollTop = Number(state?.scrollTop);
+    if (!Number.isFinite(scrollTop) || scrollTop < 0) return null;
+    return { videoId, scrollTop };
+  } catch (error) {
+    console.error("[YouTube Digest] Reading position load error:", error);
+    return null;
+  }
+}
+
+/**
+ * Stores positions for a small recent set of videos. This prevents one value
+ * from growing without a limit during a long Chrome session.
+ */
+async function saveTranscriptViewState(videoId, scrollTop) {
+  if (!videoId || !Number.isFinite(scrollTop) || scrollTop < 0) return;
+  try {
+    const storage = getTranscriptViewStateStorage();
+    const result = await storage.get(TRANSCRIPT_VIEW_STATE_KEY);
+    const states = result?.[TRANSCRIPT_VIEW_STATE_KEY] || {};
+    states[videoId] = { scrollTop, updatedAt: Date.now() };
+
+    const recentStates = Object.fromEntries(
+      Object.entries(states)
+        .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
+        .slice(0, 20),
+    );
+    await storage.set({ [TRANSCRIPT_VIEW_STATE_KEY]: recentStates });
+  } catch (error) {
+    console.error("[YouTube Digest] Reading position save error:", error);
+  }
+}
+
+/**
+ * Saves the visible position after scrolling stops. Capturing the video ID and
+ * position now prevents a later video change from writing the wrong state.
+ */
+function scheduleTranscriptViewStateSave() {
+  if (
+    isRestoringTranscriptView ||
+    !currentVideoId ||
+    !transcriptTabIsActive()
+  ) {
+    return;
+  }
+  const contentArea = document.getElementById("contentArea");
+  if (!contentArea) return;
+
+  const videoId = currentVideoId;
+  const scrollTop = contentArea.scrollTop;
+  lastTranscriptScrollTop = scrollTop;
+  clearTimeout(transcriptViewStateSaveTimer);
+  transcriptViewStateSaveTimer = setTimeout(() => {
+    void saveTranscriptViewState(videoId, scrollTop);
+  }, 150);
+}
+
+/**
+ * Saves immediately before the panel closes.
+ */
+function saveCurrentTranscriptViewState() {
+  clearTimeout(transcriptViewStateSaveTimer);
+  const contentArea = document.getElementById("contentArea");
+  if (!currentVideoId || !contentArea) return Promise.resolve();
+  if (transcriptTabIsActive()) captureCurrentTranscriptScrollTop();
+  return saveTranscriptViewState(currentVideoId, lastTranscriptScrollTop);
+}
+
+/**
+ * Returns true only while the Transcript tab is the visible results panel.
+ */
+function transcriptTabIsActive() {
+  return resultTabIsActive("transcript");
+}
+
+function resultTabIsActive(tabName) {
+  return Boolean(
+    document.querySelector(
+      `.tab-panel[data-panel="${CSS.escape(tabName)}"].active`,
+    ),
+  );
+}
+
+/**
+ * Copies the shared scroll area's current value into transcript-only state.
+ */
+function captureCurrentTranscriptScrollTop() {
+  const contentArea = document.getElementById("contentArea");
+  if (contentArea) lastTranscriptScrollTop = contentArea.scrollTop;
+}
+
+/**
+ * Restores the saved position after the transcript becomes visible. Follow
+ * Playback stays paused, so the next timer tick cannot move the panel again.
+ */
+function restorePendingTranscriptViewState(videoId) {
+  const state = pendingTranscriptViewState;
+  pendingTranscriptViewState = null;
+  const contentArea = document.getElementById("contentArea");
+  if (!state || state.videoId !== videoId) {
+    contentArea?.classList.remove("restoring-transcript-view");
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    if (currentVideoId !== videoId || !contentArea) {
+      contentArea?.classList.remove("restoring-transcript-view");
+      return;
+    }
+
+    isRestoringTranscriptView = true;
+    lastAutoScrollTime = Date.now();
+    autoScrollEnabled = false;
+    contentArea.scrollTop = state.scrollTop;
+    lastTranscriptScrollTop = state.scrollTop;
+    document.getElementById("followPlaybackBtn").style.display = "block";
+    contentArea.classList.remove("restoring-transcript-view");
+    requestAnimationFrame(() => {
+      isRestoringTranscriptView = false;
+    });
+  });
+}
+
 // ============================================================
-// TRANSCRIPT MODE UI — Original / Chinese / aligned bilingual
+// UNIVERSAL DISPLAY LANGUAGE — Original / Chinese / aligned bilingual
 // ============================================================
 
-function getOriginalTranscriptLabel() {
-  const language = String(currentTranscriptLanguage || "").trim();
-  return /^[A-Za-z0-9-]{1,20}$/.test(language)
-    ? `Original (${language})`
-    : "Original";
+async function loadDisplayLanguageMode(videoId) {
+  if (!videoId) {
+    setTranscriptModeButtons("original");
+    return "original";
+  }
+  try {
+    const stored = await chrome.storage.local.get(DISPLAY_LANGUAGE_MODE_KEY);
+    const mode = stored?.[DISPLAY_LANGUAGE_MODE_KEY]?.[videoId]?.mode;
+    currentTranscriptMode = DISPLAY_LANGUAGE_MODES.has(mode)
+      ? mode
+      : "original";
+  } catch (error) {
+    currentTranscriptMode = "original";
+  }
+  setTranscriptModeButtons(currentTranscriptMode);
+  return currentTranscriptMode;
+}
+
+async function saveDisplayLanguageMode(videoId, mode) {
+  if (!videoId || !DISPLAY_LANGUAGE_MODES.has(mode)) return;
+  const stored = await chrome.storage.local.get(DISPLAY_LANGUAGE_MODE_KEY);
+  const modes = stored?.[DISPLAY_LANGUAGE_MODE_KEY] || {};
+  modes[videoId] = { mode, updatedAt: Date.now() };
+  const recentModes = Object.fromEntries(
+    Object.entries(modes)
+      .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, 50),
+  );
+  await chrome.storage.local.set({
+    [DISPLAY_LANGUAGE_MODE_KEY]: recentModes,
+  });
 }
 
 function getActiveTranscriptSegments() {
@@ -1950,24 +2794,42 @@ function setTranscriptModeButtons(mode) {
   });
 }
 
-async function handleTranscriptModeChange(mode) {
-  if (!["original", "zh", "bilingual"].includes(mode)) return;
+async function handleDisplayLanguageModeChange(mode) {
+  if (!DISPLAY_LANGUAGE_MODES.has(mode)) return;
   if (mode === currentTranscriptMode) return;
 
   currentTranscriptMode = mode;
+  await saveDisplayLanguageMode(currentVideoId, mode);
+  if (mode !== "original") interfaceTranslationFailures.clear();
   translationGeneration += 1;
   translationWorkCount = 0;
   setTranslatingSpinner(false);
   if (transcriptScrollObserver) transcriptScrollObserver.disconnect();
   transcriptScrollObserver = null;
   setTranscriptModeButtons(mode);
+  const activeTabName =
+    document.querySelector(".tab.active")?.dataset.tab || "transcript";
 
   if (mode === "original") {
     renderTranscript();
+    if (currentAnalysis) renderAnalysisResults(currentAnalysis);
+    if (currentNotes.length) renderNotes(currentNotes, currentNotesFilterVideoId);
     return;
   }
 
-  await translateTranscript();
+  if (currentAnalysis) {
+    renderAnalysisResults(currentAnalysis);
+  }
+  if (currentNotes.length) {
+    renderNotes(currentNotes, currentNotesFilterVideoId);
+  }
+  if (activeTabName === "overview" && currentAnalysis) {
+    await translateOverviewContent();
+  } else if (activeTabName === "notes" && currentNotes.length) {
+    await translateNotesContent();
+  } else if (activeTabName === "transcript") {
+    await translateTranscript();
+  }
 }
 
 function renderTranscriptSegmentContent(segment, mode, translated, error) {
@@ -1995,16 +2857,6 @@ function renderTranscriptModeRows(segments, mode) {
 
   const existingBadge = document.getElementById("transcriptSourceBadge");
   if (existingBadge) existingBadge.remove();
-  const badge = document.createElement("div");
-  badge.id = "transcriptSourceBadge";
-  badge.className = "transcript-source-badge";
-  const originalLabel = getOriginalTranscriptLabel();
-  const modeLabel =
-    mode === "bilingual"
-      ? `${originalLabel} + 简体中文`
-      : `简体中文 · translated from ${originalLabel}`;
-  badge.innerHTML = `<span class="source-dot source-dot--subs"></span> From video subtitles · ${modeLabel}`;
-  transcriptList.parentElement.insertBefore(badge, transcriptList);
 
   const rows = [];
   segments.forEach((segment, index) => {
@@ -2030,6 +2882,9 @@ function renderTranscriptModeRows(segments, mode) {
     transcriptList.appendChild(div);
     rows.push(div);
   });
+
+  // Bilingual mode can find source text before each translation arrives.
+  refreshTranscriptSearch({ preserveIndex: false, scroll: false });
 
   startPlaybackTracking();
   return rows;
@@ -2145,6 +3000,7 @@ async function requestTranscriptTranslationBatch(
         generation,
       );
     });
+    refreshTranscriptSearch({ preserveIndex: true, scroll: false });
     await updateCache();
   } catch (error) {
     if (generation !== translationGeneration) return;
@@ -2156,6 +3012,7 @@ async function requestTranscriptTranslationBatch(
         generation,
       );
     });
+    refreshTranscriptSearch({ preserveIndex: true, scroll: false });
   } finally {
     setTranslatingSpinner(false);
   }
@@ -2186,7 +3043,6 @@ async function translateTranscript() {
   const segments = getActiveTranscriptSegments();
   if (!segments.length || currentTranscriptMode === "original") return;
 
-  translationGeneration += 1;
   const generation = translationGeneration;
   const videoId = currentVideoId;
   const mode = currentTranscriptMode;
@@ -2201,7 +3057,7 @@ async function translateTranscript() {
     if (processing || queue.length === 0 || generation !== translationGeneration)
       return;
     processing = true;
-    const indices = queue.splice(0, 3);
+    const indices = queue.splice(0, TRANSLATION_BATCH_SIZE);
     indices.forEach((index) => queued.delete(index));
     try {
       await requestTranscriptTranslationBatch(
@@ -2251,7 +3107,7 @@ async function translateTranscript() {
 
   rows.forEach((row, index) => {
     if (!row.classList.contains("translated")) transcriptScrollObserver.observe(row);
-    if (index < 3) enqueue(index);
+    if (index < TRANSLATION_BATCH_SIZE) enqueue(index);
   });
 }
 
@@ -2270,6 +3126,12 @@ globalThis.__YTD_TRANSCRIPT_TESTING__ = {
   groupTranscriptEntries,
   splitOversizedThought,
   alignTranslatedSegmentBatch,
+  findLiteralTranscriptMatches,
+  loadTranscriptViewState,
+  saveTranscriptViewState,
+  loadDisplayLanguageMode,
+  saveDisplayLanguageMode,
+  getNavigationUrl,
   renderSubtitleInlineMarkup,
   renderTranscriptSegmentContent,
 };

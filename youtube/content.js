@@ -232,10 +232,7 @@ function createDigestButton() {
   digestButton.id = "ytd-digest-button";
   digestButton.type = "button";
   digestButton.setAttribute("aria-label", "Open YouTube Digest");
-  digestButton.innerHTML = `
-    <span class="ytd-digest-icon" style="font-size: 11px;">▶</span>
-    <span class="ytd-digest-label">Digest</span>
-  `;
+  digestButton.innerHTML = `<span class="ytd-digest-label">Digest</span>`;
 
   // Style the button — rounded pill in our terracotta accent, sized to sit
   // comfortably among YouTube's native action buttons.
@@ -254,8 +251,7 @@ function createDigestButton() {
     font-weight: 600;
     cursor: pointer;
     margin-right: 8px;
-    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 2px 8px rgba(200, 103, 79, 0.3);
+    transition: background 0.2s, transform 0.1s;
     flex: 0 0 auto;
     align-self: center;
     width: max-content;
@@ -645,11 +641,11 @@ function showNoteSavedToast(note) {
   const toast = document.createElement("div");
   toast.id = "ytd-note-toast";
   toast.innerHTML = `
-    <div style="font-weight: 700; margin-bottom: 6px; color: #c8674f;">📝 Note saved</div>
+    <div style="font-weight: 700; margin-bottom: 6px; color: #c8674f;">Note saved</div>
     <div style="font-size: 12px; color: #6b6258; margin-bottom: 8px;">${escapeHtmlForContent(note.timestamp)} — ${escapeHtmlForContent(note.videoTitle)}</div>
     <div style="font-size: 13px; line-height: 1.55; color: #2e2a24;">"${escapeHtmlForContent(note.text)}"</div>
     <div style="margin-top: 10px; font-size: 11px;">
-      <a href="${escapeHtmlForContent(note.timestampedUrl)}" style="color: #c8674f; font-weight: 600; text-decoration: none;">🔗 Copy link</a>
+      <a href="${escapeHtmlForContent(note.timestampedUrl)}" style="color: #c8674f; font-weight: 600; text-decoration: none;">Copy link</a>
     </div>
   `;
 
@@ -683,7 +679,7 @@ function showNoteSavedToast(note) {
     e.preventDefault();
     try {
       await navigator.clipboard.writeText(note.timestampedUrl);
-      e.target.textContent = "✓ Copied!";
+      e.target.textContent = "Copied";
     } catch (err) {
       console.error("Copy failed:", err);
     }

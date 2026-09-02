@@ -7,7 +7,7 @@ html, body {
   padding: 0;
   height: 100%;
   background: #ffffff;
-  color: #111827;
+  color: #2e2a24;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
   font-size: 13px;
   line-height: 1.5;
@@ -25,7 +25,7 @@ body {
   gap: 5px;
   min-height: 46px;
   padding: 10px 12px 8px;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid #ece5d9;
   background: #ffffff;
   flex-shrink: 0;
 }
@@ -37,8 +37,8 @@ body {
   max-width: 144px;
   padding: 6px 10px;
   border: 0;
-  background: #f7f8fb;
-  color: #4b5563;
+  background: #fbf8f2;
+  color: #6b6258;
   border-radius: 999px;
   font-size: 12px;
   text-align: left;
@@ -50,8 +50,8 @@ body {
 }
 
 .sp-context-chip:hover {
-  background: #eef2f7;
-  color: #1f2937;
+  background: #ece5d9;
+  color: #2e2a24;
 }
 
 .sp-context-chip.is-mismatch {
@@ -75,18 +75,18 @@ body {
   min-width: 92px;
   max-width: 172px;
   padding: 0 28px 0 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ece5d9;
   border-radius: 999px;
   background: #fff;
   font: inherit;
   font-size: 12px;
-  color: #374151;
+  color: #6b6258;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   background-image:
-    linear-gradient(45deg, transparent 50%, #98928a 50%),
-    linear-gradient(135deg, #98928a 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, #a39a8d 50%),
+    linear-gradient(135deg, #a39a8d 50%, transparent 50%);
   background-position:
     calc(100% - 14px) calc(50% - 1px),
     calc(100% - 10px) calc(50% - 1px);
@@ -100,7 +100,7 @@ body {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #6b7280;
+  color: #6b6258;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -126,8 +126,8 @@ body {
 }
 
 .sp-icon-btn:hover {
-  background: #f5f7fa;
-  color: #111827;
+  background: #fbf8f2;
+  color: #2e2a24;
 }
 
 @keyframes sp-icon-rotate {
@@ -160,18 +160,18 @@ body {
 .sp-chip {
   text-align: left;
   padding: 11px 13px;
-  border: 1px solid #eceff3;
+  border: 1px solid #ece5d9;
   border-radius: 14px;
-  background: #fafbfc;
-  color: #1f2937;
+  background: #fbf8f2;
+  color: #2e2a24;
   font: inherit;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .sp-chip:hover {
-  background: #f4f6f8;
-  border-color: #d8dee6;
+  background: #fbf8f2;
+  border-color: #ece5d9;
 }
 
 .sp-msg {
@@ -186,16 +186,16 @@ body {
 
 .sp-msg-user {
   align-self: flex-end;
-  background: #f2f5f9;
-  color: #1f2937;
-  border: 1px solid #e7ebf0;
+  background: #fbf8f2;
+  color: #2e2a24;
+  border: 1px solid #ece5d9;
   border-bottom-right-radius: 6px;
 }
 
 .sp-msg-assistant {
   align-self: flex-start;
   background: transparent;
-  color: #111827;
+  color: #2e2a24;
   border: 0;
   padding: 0;
   white-space: normal;
@@ -216,10 +216,10 @@ body {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #e7ebf0;
+  border: 1px solid #ece5d9;
   border-radius: 9px;
   background: #ffffff;
-  color: #6b7280;
+  color: #6b6258;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -228,25 +228,25 @@ body {
 }
 
 .sp-msg-copy-btn:hover {
-  background: #f7f8fb;
-  color: #111827;
-  border-color: #d8dee6;
+  background: #fbf8f2;
+  color: #2e2a24;
+  border-color: #ece5d9;
 }
 
 .sp-msg-copy-btn:disabled {
   cursor: default;
-  color: #4b5563;
+  color: #6b6258;
 }
 
 .sp-msg-save-btn.is-saving {
-  color: #111827;
-  border-color: #cfd6df;
-  background: #f7f8fb;
+  color: #2e2a24;
+  border-color: #ddd4c4;
+  background: #fbf8f2;
 }
 
 .sp-confirm-overlay {
   align-items: center;
-  background: rgba(17, 24, 39, 0.28);
+  background: rgba(50, 42, 32, 0.28);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -257,10 +257,10 @@ body {
 
 .sp-confirm-dialog {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #ece5d9;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
-  color: #111827;
+  box-shadow: 0 20px 60px rgba(90, 80, 60, 0.22);
+  color: #2e2a24;
   max-width: 360px;
   padding: 18px;
   width: 100%;
@@ -273,16 +273,16 @@ body {
 }
 
 .sp-confirm-body {
-  color: #4b5563;
+  color: #6b6258;
   font-size: 13px;
   margin-bottom: 8px;
 }
 
 .sp-confirm-path {
-  background: #f7f8fb;
-  border: 1px solid #edf0f4;
+  background: #fbf8f2;
+  border: 1px solid #ece5d9;
   border-radius: 10px;
-  color: #374151;
+  color: #6b6258;
   font-size: 12px;
   line-height: 1.45;
   max-height: 96px;
@@ -299,7 +299,7 @@ body {
 }
 
 .sp-confirm-actions button {
-  border: 1px solid #d9dee7;
+  border: 1px solid #ece5d9;
   border-radius: 10px;
   cursor: pointer;
   font-size: 13px;
@@ -309,12 +309,12 @@ body {
 
 .sp-confirm-cancel {
   background: #ffffff;
-  color: #374151;
+  color: #6b6258;
 }
 
 .sp-confirm-primary {
-  background: #111827;
-  border-color: #111827 !important;
+  background: #2e2a24;
+  border-color: #2e2a24 !important;
   color: #ffffff;
 }
 
@@ -364,13 +364,13 @@ body {
 .sp-msg-assistant th,
 .sp-msg-assistant td {
   padding: 7px 8px;
-  border: 1px solid #e6eaf0;
+  border: 1px solid #ece5d9;
   text-align: left;
   vertical-align: top;
 }
 
 .sp-msg-assistant th {
-  background: #f7f8fb;
+  background: #fbf8f2;
   font-weight: 700;
 }
 
@@ -380,7 +380,7 @@ body {
 
 .sp-msg-assistant strong {
   font-weight: 700;
-  color: #111827;
+  color: #2e2a24;
 }
 
 .sp-msg-assistant em {
@@ -389,8 +389,8 @@ body {
 
 .sp-msg-assistant code {
   padding: 1px 5px;
-  background: #f4f6f8;
-  border: 1px solid #e6eaf0;
+  background: #fbf8f2;
+  border: 1px solid #ece5d9;
   border-radius: 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
@@ -401,25 +401,25 @@ body {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #2563eb;
+  color: #c8674f;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
-  text-decoration-color: rgba(37, 99, 235, 0.35);
+  text-decoration-color: rgba(200, 103, 79, 0.35);
   text-underline-offset: 2px;
 }
 
 .sp-timestamp-link:hover {
-  color: #1d4ed8;
-  text-decoration-color: rgba(29, 78, 216, 0.55);
+  color: #b25742;
+  text-decoration-color: rgba(200, 103, 79, 0.55);
 }
 
 .sp-msg-assistant pre {
   margin: 6px 0;
   padding: 10px 12px;
-  background: #f6f8fa;
-  border: 1px solid #e6eaf0;
+  background: #fbf8f2;
+  border: 1px solid #ece5d9;
   border-radius: 10px;
   overflow-x: auto;
 }
@@ -433,7 +433,7 @@ body {
 }
 
 .sp-msg-assistant a {
-  color: #2563eb;
+  color: #c8674f;
   text-decoration: none;
 }
 
@@ -445,7 +445,7 @@ body {
   display: inline-block;
   width: 5px;
   height: 12px;
-  background: #9ca3af;
+  background: #a39a8d;
   margin-left: 2px;
   vertical-align: -2px;
   animation: sp-blink 1s steps(2) infinite;
@@ -467,14 +467,14 @@ body {
 .sp-center-error {
   margin: auto;
   text-align: center;
-  color: #6b7280;
+  color: #6b6258;
   font-size: 14px;
   padding: 18px 16px;
   line-height: 1.65;
 }
 
 .sp-center-error a {
-  color: #2563eb;
+  color: #c8674f;
   text-decoration: none;
 }
 
@@ -489,10 +489,10 @@ body {
   z-index: 1;
   margin-bottom: 2px;
   padding: 7px 10px;
-  border: 1px solid #e6ebf2;
+  border: 1px solid #ece5d9;
   border-radius: 10px;
-  background: rgba(247, 248, 251, 0.96);
-  color: #4b5563;
+  background: rgba(251, 248, 242, 0.96);
+  color: #6b6258;
   font-size: 12px;
   line-height: 1.35;
   text-align: center;
@@ -504,7 +504,7 @@ body {
   flex-direction: column;
   gap: 6px;
   padding: 8px 12px 12px;
-  border-top: 1px solid #eef2f7;
+  border-top: 1px solid #ece5d9;
   background: #ffffff;
   flex-shrink: 0;
   position: relative;
@@ -527,7 +527,7 @@ body {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #6b7280;
+  color: #6b6258;
   font: inherit;
   font-size: 13px;
   line-height: 1;
@@ -535,8 +535,8 @@ body {
 }
 
 .sp-toolbar-btn:hover {
-  background: #f5f7fa;
-  color: #111827;
+  background: #fbf8f2;
+  color: #2e2a24;
 }
 
 .sp-toolbar-btn:disabled {
@@ -545,8 +545,8 @@ body {
 }
 
 .sp-toolbar-btn.is-saving {
-  background: #f5f7fa;
-  color: #111827;
+  background: #fbf8f2;
+  color: #2e2a24;
 }
 
 .sp-toolbar-btn svg {
@@ -580,10 +580,10 @@ body {
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #e7ebf0;
+  border: 1px solid #ece5d9;
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 28px rgba(90, 80, 60, 0.08);
 }
 
 .sp-preset-popover[hidden] {
@@ -601,10 +601,10 @@ body {
   gap: 8px;
   max-height: 430px;
   padding: 10px;
-  border: 1px solid #e7ebf0;
+  border: 1px solid #ece5d9;
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 28px rgba(90, 80, 60, 0.08);
   overflow-y: auto;
 }
 
@@ -622,7 +622,7 @@ body {
 .sp-history-popover-title {
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #6b6258;
 }
 
 .sp-preset-list {
@@ -638,19 +638,19 @@ body {
 }
 
 .sp-preset-empty {
-  color: #94a3b8;
+  color: #a39a8d;
   font-size: 12px;
 }
 
 .sp-history-empty {
-  color: #94a3b8;
+  color: #a39a8d;
   font-size: 12px;
 }
 
 .sp-history-clear-btn {
   border: 0;
   background: transparent;
-  color: #94a3b8;
+  color: #a39a8d;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -668,16 +668,16 @@ body {
   grid-template-columns: minmax(0, 1fr) 24px;
   gap: 6px;
   align-items: center;
-  border: 1px solid #eceff3;
+  border: 1px solid #ece5d9;
   border-radius: 12px;
-  background: #fafbfc;
+  background: #fbf8f2;
   padding: 4px;
   max-width: 100%;
 }
 
 .sp-history-item.is-active {
-  border-color: #d8dee6;
-  background: #f4f6f8;
+  border-color: #ece5d9;
+  background: #fbf8f2;
 }
 
 .sp-history-item.is-live-match {
@@ -691,7 +691,7 @@ body {
   border: 0;
   background: transparent;
   text-align: left;
-  color: #111827;
+  color: #2e2a24;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -718,14 +718,14 @@ body {
 .sp-history-title-suffix {
   flex: 0 0 auto;
   white-space: nowrap;
-  color: #475569;
+  color: #6b6258;
   font-size: 11px;
 }
 
 .sp-history-meta {
   font-size: 11px;
   line-height: 1.3;
-  color: #6b7280;
+  color: #6b6258;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -737,7 +737,7 @@ body {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #9ca3af;
+  color: #a39a8d;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -752,9 +752,9 @@ body {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
-  border: 1px solid #eceff3;
+  border: 1px solid #ece5d9;
   border-radius: 999px;
-  background: #fafbfc;
+  background: #fbf8f2;
   overflow: hidden;
 }
 
@@ -763,7 +763,7 @@ body {
   padding: 5px 10px;
   border: 0;
   background: transparent;
-  color: #4b5563;
+  color: #6b6258;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -773,16 +773,16 @@ body {
 }
 
 .sp-preset-chip:hover {
-  color: #111827;
+  color: #2e2a24;
 }
 
 .sp-preset-remove {
   width: 24px;
   height: 24px;
   border: 0;
-  border-left: 1px solid #eceff3;
+  border-left: 1px solid #ece5d9;
   background: transparent;
-  color: #9ca3af;
+  color: #a39a8d;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -803,9 +803,9 @@ body {
   min-width: 0;
   height: 30px;
   padding: 0 10px;
-  border: 1px solid #e3e8ef;
+  border: 1px solid #ece5d9;
   border-radius: 999px;
-  background: #fafbfc;
+  background: #fbf8f2;
   font: inherit;
   font-size: 12px;
 }
@@ -815,15 +815,15 @@ body {
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: #f4f6f8;
-  color: #374151;
+  background: #fbf8f2;
+  color: #6b6258;
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
 
 .sp-preset-add-btn:hover {
-  background: #e9eef4;
+  background: #ece5d9;
 }
 
 #spInput {
@@ -831,9 +831,9 @@ body {
   min-height: 94px;
   max-height: 320px;
   padding: 12px 12px;
-  border: 1px solid #e3e8ef;
+  border: 1px solid #ece5d9;
   border-radius: 16px;
-  background: #fafbfc;
+  background: #fbf8f2;
   font: inherit;
   font-size: 14px;
   line-height: 1.45;
@@ -846,7 +846,7 @@ body {
 }
 
 #spInput:focus {
-  border-color: #cfd8e3;
+  border-color: #ddd4c4;
   box-shadow: 0 0 0 2px rgba(207, 216, 227, 0.32);
 }
 
@@ -855,10 +855,10 @@ body {
   align-self: flex-end;
   height: 36px;
   padding: 0 12px;
-  border: 1px solid #e3e8ef;
+  border: 1px solid #ece5d9;
   border-radius: 999px;
   background: #ffffff;
-  color: #6b7280;
+  color: #6b6258;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -866,9 +866,9 @@ body {
 }
 
 .sp-stop-btn:hover {
-  background: #f7f8fb;
-  color: #111827;
-  border-color: #d8dee6;
+  background: #fbf8f2;
+  color: #2e2a24;
+  border-color: #ece5d9;
 }
 
 .sp-stop-btn:disabled {
@@ -877,7 +877,7 @@ body {
 }
 
 .sp-msg-stopped {
-  color: #6b7280;
+  color: #6b6258;
   font-size: 12px;
   line-height: 1.4;
   padding-top: 2px;

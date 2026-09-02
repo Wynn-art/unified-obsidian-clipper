@@ -1,12 +1,16 @@
 <!doctype html>
-<html lang="zh-CN">
+<html data-unified-ui="bilibili" lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI 助手</title>
     <link rel="stylesheet" href="./sidepanel.css" />
-  </head>
+  <link rel="stylesheet" href="../branding/brand.css">
+<link rel="icon" type="image/png" href="../branding/icon32.png">
+<link rel="stylesheet" href="../branding/theme.css">
+</head>
   <body>
+<div class="unified-brand-row unified-brand-standalone"><img class="unified-brand-logo" src="../branding/logo.jpeg" alt="个人 logo" width="90" height="34"><span>Unified Obsidian Clipper</span></div>
     <header class="sp-header">
       <button type="button" class="sp-context-chip" id="spContextChip" title="">加载中...</button>
       <select id="spModelSelect" class="sp-model-select" aria-label="选择模型平台"></select>
@@ -25,6 +29,10 @@
         </svg>
       </button>
     </header>
+    <div style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
+      <button class="sp-toolbar-btn" type="button" data-unified-bili-mode="study">切换到学习模式</button>
+      <span id="unifiedNavigationStatus" role="status"></span>
+    </div>
     <main class="sp-messages" id="spMessages">
       <div class="sp-suggestions" id="spSuggestions"></div>
     </main>
@@ -72,5 +80,6 @@
       </div>
     </footer>
     <script type="module" src="./sidepanel.js"></script>
+      <script src="../bilibili-digest/navigation.js"></script>
   </body>
 </html>

@@ -1,0 +1,8 @@
+/* Original user-provided artwork, shown without redrawing or distortion. */
+.unified-brand-row { display:flex; align-items:center; gap:10px; min-height:40px; padding:4px 0 8px; flex:none; }
+.unified-brand-row > span { font-size:11px; line-height:1.35; opacity:.75; }
+img.unified-brand-logo, img.logo.unified-brand-logo { display:block; width:90px; height:34px; min-width:90px; max-width:none; object-fit:cover; object-position:50% 48%; border-radius:5px; background:#fff; flex:none; }
+.unified-brand-standalone { padding:8px 14px 4px; }
+#popup-container > .unified-brand-row { padding:8px 12px 0; }
+#settings-sidebar-title img.unified-brand-logo, #navbar-title img.unified-brand-logo { width:64px; min-width:64px; height:26px; }
+img.unified-brand-hero { display:block; width:180px; height:70px; object-fit:cover; object-position:50% 48%; border-radius:8px; background:#fff; margin:0 auto 18px; }

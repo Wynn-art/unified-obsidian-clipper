@@ -1,31 +1,71 @@
 <!doctype html>
-<html lang="en">
+<html data-unified-ui="youtube" lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Digest</title>
     <link rel="stylesheet" href="sidepanel.css" />
-  </head>
+    <link rel="stylesheet" href="growth-panel.css" />
+  <link rel="stylesheet" href="../branding/brand.css">
+<link rel="icon" type="image/png" href="../branding/icon32.png">
+<link rel="stylesheet" href="../branding/theme.css">
+</head>
   <body>
     <!-- HEADER -->
     <!-- Note: the panel's own "YouTube Digest" title is shown by Chrome's side-panel
          title bar, so we don't repeat a logo here. -->
     <div class="header">
+<div class="unified-brand-row"><img class="unified-brand-logo" src="../branding/logo.jpeg" alt="个人 logo" width="90" height="34"><span>Unified Obsidian Clipper</span></div>
       <div class="header-top">
         <!-- Video info -->
         <div class="video-info" id="videoInfo" style="display: none">
           <div class="video-title" id="videoTitle"></div>
           <div class="video-channel" id="videoChannel"></div>
         </div>
-        <button
-          class="settings-btn"
-          id="settingsBtn"
-          type="button"
-          title="Open YouTube Digest settings"
-          aria-label="Open YouTube Digest settings"
-        >
-          Settings
-        </button>
+        <div class="header-actions">
+          <button class="enhance-btn obsidian-sync-btn" id="syncObsidianBtn" disabled>保存到 Obsidian</button>
+          <span id="obsidianSyncStatus" class="obsidian-sync-status" role="status" aria-live="polite"></span>
+          <button
+            class="settings-btn"
+            id="settingsBtn"
+            type="button"
+            title="Open YouTube Digest settings"
+            aria-label="Open YouTube Digest settings"
+          >
+            Settings
+          </button>
+          <div
+            class="transcript-mode-control global-language-control"
+            id="transcriptModeControl"
+            role="group"
+            aria-label="Content language"
+            style="display: none"
+          >
+            <button
+              class="transcript-mode-btn active"
+              type="button"
+              data-transcript-mode="original"
+              aria-pressed="true"
+            >Original</button>
+            <button
+              class="transcript-mode-btn"
+              type="button"
+              data-transcript-mode="zh"
+              aria-pressed="false"
+            >中文</button>
+            <button
+              class="transcript-mode-btn"
+              type="button"
+              data-transcript-mode="bilingual"
+              aria-pressed="false"
+            >双语</button>
+            <span
+              class="translation-spinner"
+              id="langSpinner"
+              aria-label="Translating"
+            ></span>
+          </div>
+        </div>
       </div>
 
       <!-- Tab navigation -->
@@ -40,7 +80,7 @@
     <div class="content" id="contentArea">
       <!-- WELCOME STATE -->
       <div id="welcomeState" class="welcome-container">
-        <div class="welcome-icon">&#9655;</div>
+        <div class="welcome-icon" aria-hidden="true"></div>
         <div class="welcome-title">Ready to Digest</div>
         <div class="welcome-desc">
           Navigate to a YouTube video and click the extension icon to get an
@@ -62,7 +102,7 @@
       <!-- ERROR STATE -->
       <div id="errorState" style="display: none">
         <div class="error-container">
-          <div class="error-icon">&#9888;</div>
+          <div class="error-icon" aria-hidden="true">!</div>
           <div class="error-title" id="errorTitle">Error</div>
           <div class="error-message" id="errorMessage">
             Something went wrong.
@@ -77,50 +117,72 @@
         <div class="tab-panel active" data-panel="transcript">
           <div class="section">
             <div class="section-header transcript-section-header">
-              <div class="transcript-header-main">
-                <div class="section-title-wrap">
-                  <div class="section-title">Full Transcript</div>
-                </div>
-                <div
-                  class="transcript-mode-control"
-                  id="transcriptModeControl"
-                  role="group"
-                  aria-label="Transcript language"
-                >
-                  <button
-                    class="transcript-mode-btn active"
-                    type="button"
-                    data-transcript-mode="original"
-                    aria-pressed="true"
-                  >Original</button>
-                  <button
-                    class="transcript-mode-btn"
-                    type="button"
-                    data-transcript-mode="zh"
-                    aria-pressed="false"
-                  >中文</button>
-                  <button
-                    class="transcript-mode-btn"
-                    type="button"
-                    data-transcript-mode="bilingual"
-                    aria-pressed="false"
-                  >双语</button>
-                  <span
-                    class="translation-spinner"
-                    id="langSpinner"
-                    aria-label="Translating"
-                  ></span>
-                </div>
-              </div>
+              <div class="section-title">Full Transcript</div>
               <div class="transcript-actions">
                 <button class="enhance-btn" id="copyTranscriptBtn">Copy</button>
                 <button class="enhance-btn" id="exportTranscriptBtn">
                   Export
                 </button>
-                <button class="enhance-btn obsidian-sync-btn" id="syncObsidianBtn" disabled>
-                  Sync to Obsidian
+              </div>
+            </div>
+            <!-- Search stays inside the Transcript tab and never changes playback. -->
+            <div class="transcript-search" role="search">
+              <svg
+                class="transcript-search-icon"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <circle cx="8.5" cy="8.5" r="5.5"></circle>
+                <path d="m12.5 12.5 4 4"></path>
+              </svg>
+              <input
+                class="transcript-search-input"
+                id="transcriptSearchInput"
+                type="search"
+                placeholder="Search words or phrases"
+                aria-label="Search transcript"
+                aria-controls="transcriptList"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                class="transcript-search-clear"
+                id="transcriptSearchClearBtn"
+                type="button"
+                aria-label="Clear transcript search"
+                title="Clear search"
+                hidden
+              >
+                &times;
+              </button>
+              <output
+                class="transcript-search-count"
+                id="transcriptSearchCount"
+                aria-live="polite"
+              ></output>
+              <div
+                class="transcript-search-nav"
+                role="group"
+                aria-label="Search results"
+              >
+                <button
+                  id="transcriptSearchPrevBtn"
+                  type="button"
+                  aria-label="Previous transcript match"
+                  title="Previous match (Shift + Enter)"
+                  disabled
+                >
+                  &#8593;
                 </button>
-                <span id="obsidianSyncStatus" class="obsidian-sync-status" role="status" aria-live="polite"></span>
+                <button
+                  id="transcriptSearchNextBtn"
+                  type="button"
+                  aria-label="Next transcript match"
+                  title="Next match (Enter)"
+                  disabled
+                >
+                  &#8595;
+                </button>
               </div>
             </div>
             <div id="transcriptList"></div>
@@ -189,9 +251,8 @@
               </div>
             </div>
             <p class="notes-intro" id="notesIntro">
-              Move your mouse over the video and click the 📝 Note button to
-              save timestamped notes, or press the "n" key while the video is
-              focused.
+              Move your mouse over the video and click Note to save a
+              timestamped note, or press the "n" key while the video is focused.
             </p>
             <div id="notesList"></div>
           </div>
@@ -208,7 +269,43 @@
       Follow playback
     </button>
 
+    <details class="growth-chat" id="growthChat" hidden>
+      <summary>成长对话 <span>基于视频 · 行动计划</span></summary>
+      <div class="growth-body">
+        <p class="growth-hint">使用现有 DeepSeek。图片、音频、视频等请在 Gemini 客户端分析后导入文字结果；这里不会自动读取或上传附件。</p>
+        <p id="growthEmpty" class="growth-hint">从一个具体问题开始：这段视频中，哪些方法适合我现在的目标？</p>
+        <div id="growthMessages" class="growth-messages" aria-label="当前视频对话记录"></div>
+        <label for="growthQuestion">你的问题或下一步目标</label>
+        <textarea id="growthQuestion" rows="3" maxlength="8000" placeholder="例如：我每周只有两小时，如何把视频中的方法用到实际工作？"></textarea>
+        <div class="growth-actions">
+          <button id="growthSend" class="primary" type="button">发送</button>
+          <button id="growthStop" type="button" hidden>停止</button>
+          <button id="growthCopyClient" type="button">复制给 Gemini 客户端</button>
+        </div>
+        <details class="growth-import">
+          <summary>导入客户端附件分析结果</summary>
+          <p class="growth-hint">1. 复制上方提示到客户端并上传附件；2. 粘贴分析结果；3. 导入后继续提问。导入材料本身不算一次对话。</p>
+          <label for="growthSourceTitle">材料名称</label>
+          <input id="growthSourceTitle" maxlength="200" placeholder="例如：职业规划 PDF · Gemini 分析" />
+          <label for="growthSourceText">分析结果（最多 20,000 字符）</label>
+          <textarea id="growthSourceText" rows="4" maxlength="20000" placeholder="粘贴客户端分析，保留原文引用、页码或时间戳，以及不确定之处。"></textarea>
+          <button id="growthImport" type="button">导入作为补充资料</button>
+        </details>
+        <div id="growthSources" aria-label="已导入的补充资料"></div>
+        <div class="growth-actions">
+          <button id="growthReport" type="button" disabled>生成／预览成长报告</button>
+          <button id="growthClear" type="button">清空本视频对话</button>
+        </div>
+        <p id="growthStatus" class="growth-status" role="status" aria-live="polite"></p>
+        <details id="growthReportPreview" class="growth-report" hidden>
+          <summary>成长报告预览</summary>
+          <pre id="growthReportText"></pre>
+        </details>
+      </div>
+    </details>
     <script src="settings.js"></script>
+    <script src="growth-core.js"></script>
+    <script src="growth-panel.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

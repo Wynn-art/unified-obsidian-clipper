@@ -127,6 +127,14 @@ body {
   flex: 1;
 }
 
+.header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .settings-btn {
   flex-shrink: 0;
   padding: 5px 10px;
@@ -330,16 +338,13 @@ body {
 }
 
 .transcript-section-header {
-  align-items: stretch;
-  flex-direction: column;
+  align-items: center;
+  flex-direction: row;
   gap: 10px;
 }
 
-.transcript-header-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.global-language-control {
+  max-width: 100%;
 }
 
 .transcript-mode-control {
@@ -423,15 +428,6 @@ body {
   transition: all 0.18s ease;
 }
 
-.obsidian-sync-btn {
-  border-color: #7c6aa6;
-}
-
-.obsidian-sync-status {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
 .enhance-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
@@ -448,6 +444,107 @@ body {
   justify-content: flex-end;
   gap: 6px;
   position: relative;
+}
+
+/* Transcript search uses one quiet control, so it stays easy to scan. */
+.transcript-search {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 2px 0 10px;
+  padding: 0 6px 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.transcript-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.transcript-search-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.transcript-search-input {
+  min-width: 0;
+  flex: 1;
+  padding: 8px 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: 500 12px/1.4 var(--font-body);
+}
+
+.transcript-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Chrome adds a second clear icon to search inputs unless we hide it. */
+.transcript-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.transcript-search-clear,
+.transcript-search-nav button {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: 600 15px/1 var(--font-body);
+}
+
+.transcript-search-clear[hidden] {
+  display: none;
+}
+
+.transcript-search-clear:hover,
+.transcript-search-nav button:hover:not(:disabled) {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.transcript-search-nav button:disabled {
+  color: var(--border-heavy);
+  cursor: default;
+}
+
+.transcript-search-count {
+  min-width: 48px;
+  padding: 0 7px;
+  color: var(--text-muted);
+  font: 600 10.5px/1.2 var(--font-body);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.transcript-search-nav {
+  display: flex;
+  padding-left: 3px;
+  border-left: 1px solid var(--border);
+}
+
+/* Hide the top of a rebuilt transcript until its saved position is applied. */
+.content.restoring-transcript-view #resultsState {
+  visibility: hidden;
 }
 
 /* ============================================================
@@ -508,6 +605,26 @@ body {
   font-size: 12.5px;
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+.localized-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.localized-original,
+.localized-translation {
+  display: block;
+}
+
+.localized-original + .localized-translation {
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+}
+
+.localized-translation .translation-pending {
+  color: var(--text-muted);
 }
 
 /* ============================================================
@@ -592,42 +709,6 @@ body {
    TRANSCRIPT TAB
    ============================================================ */
 
-/* Small badge showing where the transcript came from */
-.transcript-source-badge {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 11px;
-  letter-spacing: 0.2px;
-  color: var(--text-muted);
-  padding: 6px 0 12px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* Colored dot indicator */
-.source-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-/* Sage dot = subtitles (the only source now) */
-.source-dot--subs {
-  background: var(--sage);
-}
-
-.source-dot--auto {
-  background: #6b8fb5;
-}
-
-.source-dot--ai {
-  background: var(--highlight);
-}
-
 .transcript-entry {
   display: flex;
   gap: 12px;
@@ -640,6 +721,24 @@ body {
 
 .transcript-entry:hover {
   background: var(--surface-raised);
+}
+
+/* A search result can be current without moving the video playback position. */
+.transcript-entry.search-current {
+  background: var(--surface-raised);
+  box-shadow: inset 3px 0 0 var(--highlight);
+}
+
+.transcript-search-highlight {
+  padding: 1px 0;
+  border-radius: 3px;
+  background: #f5d9a8;
+  color: inherit;
+}
+
+.transcript-search-highlight.current {
+  background: var(--highlight);
+  color: var(--text);
 }
 
 .transcript-time {
@@ -888,7 +987,15 @@ body {
 }
 
 .error-icon {
-  font-size: 44px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
   color: var(--accent);
   line-height: 1;
 }
@@ -944,7 +1051,7 @@ body {
   padding: 40px 24px;
 }
 
-/* A soft terracotta tile with a play glyph, matching the brand mark */
+/* A soft terracotta tile with a CSS play mark, matching the brand. */
 .welcome-icon {
   width: 84px;
   height: 84px;
@@ -954,7 +1061,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0; /* hide the original ▷ character */
   position: relative;
 }
 
@@ -1041,33 +1147,74 @@ body {
 }
 
 /* ============================================================
-   EXPLAIN TOOLTIP & MODAL
+   SELECTION ACTIONS & EXPLAIN MODAL
    ============================================================ */
 .explain-tooltip {
   position: absolute;
   z-index: 1000;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-heavy);
+  border-radius: 11px;
+  background: var(--surface);
   transform: translateX(-50%);
-  animation: fadeIn 0.15s ease;
+  animation: selectionToolbarIn 0.15s ease;
+  box-shadow: 0 8px 24px rgba(50, 42, 32, 0.16);
 }
 
-.explain-btn {
+/* Keep horizontal centering in every animation frame. The shared fadeIn
+   animation owns transform and would temporarily remove translateX(-50%). */
+@keyframes selectionToolbarIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.explain-btn,
+.selection-note-btn {
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 11.5px;
-  letter-spacing: 0.2px;
-  padding: 9px 16px;
-  background: var(--accent);
-  color: white;
+  font-size: 12px;
+  letter-spacing: 0;
+  flex: 1 1 50%;
+  min-width: 72px;
+  padding: 8px 14px;
   border: none;
-  border-radius: var(--r-pill);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(200, 103, 79, 0.4);
-  transition: all 0.18s ease;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
 }
 
-.explain-btn:hover {
-  background: var(--accent-hover);
-  transform: scale(1.05);
+.explain-btn:hover:not(:disabled),
+.selection-note-btn:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--accent-hover);
+}
+
+.explain-btn:focus-visible,
+.selection-note-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.selection-note-btn {
+  border-left: 1px solid var(--border);
+}
+
+.explain-btn:disabled,
+.selection-note-btn:disabled {
+  cursor: default;
+  color: var(--text-muted);
 }
 
 .explain-modal-overlay {
@@ -1282,20 +1429,43 @@ body {
 }
 
 .note-delete {
-  font-family: var(--font-body);
-  font-size: 14px;
-  background: none;
-  border: none;
-  border-radius: var(--r-pill);
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-raised);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 2px 8px;
-  transition: all 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
 .note-delete:hover {
+  border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-dim);
+}
+
+.note-delete:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.note-delete svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .note-text {
@@ -1329,3 +1499,6 @@ body {
   color: var(--accent);
   background: var(--accent-dim);
 }
+
+.header-actions { flex-wrap: wrap; }
+.obsidian-sync-status { font-size: 11px; overflow-wrap: anywhere; width: 100%; }

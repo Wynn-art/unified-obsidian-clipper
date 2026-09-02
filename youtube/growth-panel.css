@@ -1,0 +1,25 @@
+/* Fixed bottom dock, with bounded scrolling so the transcript remains accessible. */
+.growth-chat { flex: 0 0 auto; border-top: 1px solid var(--border, #ddd); background: var(--bg); }
+.growth-chat[hidden] { display: none; }
+.growth-chat > summary { cursor: pointer; padding: 12px 20px; font-weight: 650; color: var(--text); }
+.growth-chat > summary span { font-size: 11px; font-weight: 400; margin-left: 8px; color: var(--text-muted, #777); }
+.growth-body { max-height: 58vh; overflow-y: auto; padding: 0 16px 12px; font-size: 13px; }
+.growth-body p { margin: 6px 0; }
+.growth-hint, .growth-status { font-size: 11px; color: var(--text-secondary, #777); line-height: 1.6; overflow-wrap: anywhere; }
+.growth-messages { max-height: 24vh; overflow-y: auto; margin: 10px 0; }
+.growth-turn { padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--border, #ddd); border-radius: 8px; }
+.growth-turn strong { color: var(--accent, #a05b36); font-size: 11px; }
+.growth-turn p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.growth-body textarea, .growth-body input { display: block; width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid var(--border, #ccc); border-radius: 6px; padding: 9px; font: inherit; margin: 5px 0 8px; }
+.growth-body textarea { resize: vertical; min-height: 60px; max-height: 180px; }
+.growth-body button { padding: 6px 10px; border: 1px solid var(--border, #ccc); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; cursor: pointer; }
+.growth-body button:disabled { opacity: .45; cursor: default; }
+.growth-body button.primary { background: var(--accent, #a05b36); color: white; border-color: transparent; }
+.growth-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.growth-import { margin: 10px 0; padding: 8px 0; border-top: 1px dashed var(--border, #ccc); }
+.growth-import summary { cursor: pointer; margin-bottom: 8px; }
+.growth-source { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; }
+.growth-source span { overflow-wrap: anywhere; }
+.growth-source button { flex-shrink: 0; font-size: 11px; }
+.growth-report pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 35vh; overflow: auto; font: inherit; padding: 10px; border: 1px solid var(--border, #ddd); border-radius: 6px; }
+.growth-body :focus-visible { outline: 2px solid var(--accent, #a05b36); outline-offset: 2px; }

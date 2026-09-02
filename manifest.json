@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "en",
   "name": "Unified Obsidian Clipper",
-  "version": "0.0.1",
+  "version": "0.5.8",
   "minimum_chrome_version": "116",
   "description": "Save YouTube & Bilibili videos and web pages to Obsidian with transcripts, AI summaries, highlights, and web clipping.",
   "permissions": [
@@ -35,8 +35,12 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["youtube/content.js"],
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "youtube/content.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -45,13 +49,34 @@
         "https://www.bilibili.com/list/watchlater",
         "https://www.bilibili.com/list/watchlater/*"
       ],
-      "js": ["bilibili/content.js"],
-      "css": ["bilibili/content.css"],
+      "js": [
+        "bilibili/content.js"
+      ],
+      "css": [
+        "bilibili/content.css"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["web/browser-polyfill.min.js", "web/content.js"]
+      "matches": [
+        "https://www.bilibili.com/video/*",
+        "https://www.bilibili.com/list/*"
+      ],
+      "js": [
+        "bilibili-digest/bridge.js",
+        "bilibili-digest/content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "web/browser-polyfill.min.js",
+        "web/content.js"
+      ]
     }
   ],
   "background": {
@@ -61,9 +86,10 @@
     "default_title": "Open Unified Obsidian Clipper",
     "default_popup": "web/popup.html",
     "default_icon": {
-      "16": "youtube/icons/icon16.png",
-      "48": "youtube/icons/icon48.png",
-      "128": "youtube/icons/icon128.png"
+      "16": "branding/icon16.png",
+      "32": "branding/icon32.png",
+      "48": "branding/icon48.png",
+      "128": "branding/icon128.png"
     }
   },
   "side_panel": {
@@ -74,25 +100,38 @@
     "open_in_tab": true
   },
   "icons": {
-    "16": "youtube/icons/icon16.png",
-    "48": "youtube/icons/icon48.png",
-    "128": "youtube/icons/icon128.png"
+    "16": "branding/icon16.png",
+    "32": "branding/icon32.png",
+    "48": "branding/icon48.png",
+    "128": "branding/icon128.png"
   },
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Ctrl+Shift+O", "mac": "Command+Shift+O" },
+      "suggested_key": {
+        "default": "Ctrl+Shift+O",
+        "mac": "Command+Shift+O"
+      },
       "description": "__MSG_commandOpenClipper__"
     },
     "quick_clip": {
-      "suggested_key": { "default": "Alt+Shift+O", "mac": "Alt+Shift+O" },
+      "suggested_key": {
+        "default": "Alt+Shift+O",
+        "mac": "Alt+Shift+O"
+      },
       "description": "__MSG_commandQuickClip__"
     },
     "toggle_highlighter": {
-      "suggested_key": { "default": "Alt+Shift+H", "mac": "Alt+Shift+H" },
+      "suggested_key": {
+        "default": "Alt+Shift+H",
+        "mac": "Alt+Shift+H"
+      },
       "description": "__MSG_commandToggleHighlighter__"
     },
     "toggle_reader": {
-      "suggested_key": { "default": "Alt+Shift+R", "mac": "Alt+Shift+R" },
+      "suggested_key": {
+        "default": "Alt+Shift+R",
+        "mac": "Alt+Shift+R"
+      },
       "description": "__MSG_commandToggleReader__"
     }
   },
@@ -105,9 +144,20 @@
         "web/style.css",
         "web/side-panel.html",
         "web/flatten-shadow-dom.js",
-        "web/highlighter.css"
+        "web/highlighter.css",
+        "branding/logo.jpeg",
+        "branding/brand.css",
+        "branding/icon32.png",
+        "branding/theme.css"
       ],
-      "matches": ["*://*/*"]
+      "matches": [
+        "*://*/*"
+      ]
     }
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ]
 }

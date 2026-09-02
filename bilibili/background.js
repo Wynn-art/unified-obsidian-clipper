@@ -284,7 +284,7 @@ async function openAiSidepanelForTab(tabId) {
   }
 
   if (chrome.sidePanel?.open) {
-    await chrome.sidePanel.open({ tabId });
+    await globalThis.UNIFIED_BILI_PANELS.open(tabId, "chat");
     return;
   }
 

@@ -41,3 +41,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+## Video learning upgrade (2026-08-31)
+
+YouTube learning improvements are adapted from the supplied youtube-digest v1.2.0 snapshot. Copyright (c) 2026 Zara Zhang. Full upstream license: `youtube/UPSTREAM_LICENSE`.
+
+The Bilibili study module in `bilibili-digest/` is adapted from the supplied bilibili-digest v0.4.3 snapshot. Copyright (c) 2026 k1234567; portions copyright (c) 2026 Zara Zhang. Full upstream license: `bilibili-digest/LICENSE`.
+
+Modified for this integration: namespaced message transport, unified side-panel routing and settings entry points, Obsidian learning-note export, and integration test adapters. These versions were compared from local files; no claim is made that they are the latest upstream releases.

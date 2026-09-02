@@ -85,19 +85,30 @@ async function handleSyncToObsidian(
   learningCanvas = null,
   artifacts = { markdown: true, canvas: true },
   expectedPaths = null,
+  conversationReport = null,
 ) {
   const settings = await getObsidianSettings();
   if (!settings.apiKey) throw new Error("Obsidian API Key 未配置，请打开 Settings 设置。");
   const markdownPath = YTD_OBSIDIAN.buildNotePath(settings, metadata);
   const canvasPath = YTD_OBSIDIAN.learningCanvasPath(markdownPath);
+  if (conversationReport !== null && conversationReport !== undefined &&
+      (typeof conversationReport !== "string" || !conversationReport.trim() || conversationReport.length > 1000000)) {
+    throw new Error("成长报告内容无效或过长，未写入任何文件。");
+  }
+  const reportPath = conversationReport ? YTD_GROWTH_CORE.reportPath(markdownPath) : null;
   if (
     expectedPaths &&
     (expectedPaths.markdownPath !== markdownPath || expectedPaths.canvasPath !== canvasPath)
   ) {
     throw new Error("Obsidian target changed. Prepare the learning artifacts again.");
   }
-  const markdown = YTD_OBSIDIAN.buildMarkdownNote(metadata, segments, outputs, learningMarkdown);
-  const files = { markdown: artifacts.markdown === false, canvas: artifacts.canvas === false };
+  let markdown = YTD_OBSIDIAN.buildMarkdownNote(metadata, segments, outputs, learningMarkdown);
+  if (reportPath) {
+    const filename = reportPath.slice(reportPath.lastIndexOf("/") + 1);
+    markdown += `\n## 成长对话报告\n\n[查看成长启发与行动计划](<${encodeURIComponent(filename)}>)\n`;
+  }
+  const files = { markdown: artifacts.markdown === false, canvas: artifacts.canvas === false,
+    ...(reportPath ? { report: artifacts.report === false } : {}) };
   if (artifacts.markdown !== false) {
     try {
       await requestObsidian("PUT", markdownPath, markdown);
@@ -118,7 +129,15 @@ async function handleSyncToObsidian(
       return { success: false, error: `Markdown 已保存，但 Canvas 保存失败：${error.message}`, markdownPath, canvasPath, files };
     }
   }
-  return { success: true, markdownPath, canvasPath: (outputs || learningCanvas) ? canvasPath : null, files };
+  if (reportPath && artifacts.report !== false) {
+    try {
+      await requestObsidian("PUT", reportPath, conversationReport);
+      files.report = true;
+    } catch (error) {
+      return { success: false, error: `笔记和脑图已保存，但成长报告保存失败：${error.message}`, markdownPath, canvasPath, reportPath, files };
+    }
+  }
+  return { success: true, markdownPath, canvasPath: (outputs || learningCanvas) ? canvasPath : null, reportPath, files };
 }
 
 async function handleOpenObsidianNote(path) {
@@ -172,6 +191,7 @@ async function requestAiCompletion({
   maxTokens,
   temperature,
   responseFormat,
+  signal,
 }) {
   const settings = await getSettings();
   if (!settings.aiApiKey) {
@@ -194,6 +214,9 @@ async function requestAiCompletion({
   body.thinking = { type: "disabled" };
 
   const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  if (signal?.aborted) throw new Error("已停止生成。");
+  signal?.addEventListener("abort", abortFromCaller, { once: true });
   let timeoutKind = "";
   let idleTimeoutId;
   let hardTimeoutId;
@@ -269,6 +292,7 @@ async function requestAiCompletion({
     }
     throw error;
   } finally {
+    signal?.removeEventListener("abort", abortFromCaller);
     clearTimeout(idleTimeoutId);
     clearTimeout(hardTimeoutId);
   }
@@ -394,7 +418,8 @@ YTD_LIFECYCLE.runtimeOnInstalled(({ reason }) => {
  * visible when switching to an already-loaded non-YouTube tab.
  */
 function updatePanelForTab(tabId, url) {
-  const isYouTube = (url || "").startsWith("https://www.youtube.com");
+  const isYouTube = /^https:\/\/(www\.)?youtube\.com\/watch(?:[?#]|$)/.test(url || "");
+  if (!isYouTube) return; // Unified core configures the other sources.
   // setOptions can reject if the tab just closed — ignore that harmlessly.
   chrome.sidePanel
     .setOptions({ tabId, path: "youtube/sidepanel.html", enabled: isYouTube })
@@ -467,6 +492,7 @@ YTD_LIFECYCLE.runtimeOnMessage((message, sender, sendResponse) => {
       message.timestamp,
       message.videoTitle,
       message.channelName,
+      message.selectedText,
     )
       .then(sendResponse)
       .catch((err) => sendResponse({ success: false, error: err.message }));
@@ -551,6 +577,7 @@ YTD_LIFECYCLE.runtimeOnMessage((message, sender, sendResponse) => {
       message.canvas,
       message.artifacts,
       message.expectedPaths,
+      message.conversationReport,
     )
       .then(sendResponse)
       .catch((error) => sendResponse({ success: false, error: error.message }));
@@ -1257,10 +1284,42 @@ async function handleSaveNote(
   timestamp,
   videoTitle,
   channelName,
+  selectedText,
 ) {
   try {
     const canonicalVideoUrl = YTD_SETTINGS.canonicalYouTubeUrl(videoId);
     const safeTimestamp = Math.max(0, Math.floor(Number(timestamp) || 0));
+    const exactSelectedText =
+      typeof selectedText === "string"
+        ? selectedText.replace(/\s+/g, " ").trim().slice(0, 3000)
+        : "";
+
+    // A selected transcript note is already the exact text the user wants.
+    // Save it directly without a transcript fetch or an AI cleanup request.
+    if (exactSelectedText) {
+      const minutes = Math.floor(safeTimestamp / 60);
+      const seconds = safeTimestamp % 60;
+      const note = {
+        id: `note_${Date.now()}`,
+        videoId,
+        videoTitle:
+          typeof videoTitle === "string"
+            ? videoTitle.slice(0, 500)
+            : "Untitled Video",
+        channelName:
+          typeof channelName === "string" ? channelName.slice(0, 300) : "",
+        timestamp: `${minutes}:${String(seconds).padStart(2, "0")}`,
+        timestampSeconds: safeTimestamp,
+        timestampedUrl: `${canonicalVideoUrl}&t=${safeTimestamp}s`,
+        text: exactSelectedText,
+        rawText: exactSelectedText,
+        createdAt: Date.now(),
+      };
+
+      await saveNoteToStorage(note);
+      chrome.runtime.sendMessage({ action: "noteSaved", note }).catch(() => {});
+      return { success: true, note };
+    }
 
     // First, try to get the transcript from the digest cache. The side panel
     // saves digests to chrome.storage.LOCAL — this used to look in
@@ -1699,7 +1758,7 @@ async function handleTranslateContent(
         error: `Unsupported translation target: ${String(targetLanguage)}`,
       };
     }
-    if (contentType !== "transcriptBatch") {
+    if (!["transcriptBatch", "interfaceBatch"].includes(contentType)) {
       return {
         success: false,
         error: `Unsupported translation content type: ${String(contentType)}`,
@@ -1714,9 +1773,13 @@ async function handleTranslateContent(
     const sourceSegments = validateTranscriptBatchRequest(content);
     const langName = "Simplified Chinese";
     const baseRules = await getTranslationBaseRules(targetLanguage);
+    const promptSection =
+      contentType === "transcriptBatch"
+        ? "Transcript batch translation"
+        : "Interface content translation";
     const systemPrompt = await loadPromptSection(
       "translation.md",
-      "Transcript batch translation",
+      promptSection,
       {
         langName,
         videoTitle: videoTitle || "Unknown",
@@ -1804,4 +1867,5 @@ globalThis.__YTD_TRANSLATION_TESTING__ = {
   validateTranscriptBatchRequest,
   normalizeTranslatedSegmentBatch,
   handleTranslateContent,
+  handleSaveNote,
 };

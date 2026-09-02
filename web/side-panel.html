@@ -1,12 +1,19 @@
 <!DOCTYPE html>
-<html id="popup" class="is-side-panel">
+<html data-unified-ui="web" id="popup" class="is-side-panel">
 	<head>
+		<meta charset="UTF-8">
 		<title>Obsidian Web Clipper</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 		<link rel="stylesheet" href="style.css">
 		<script src="browser-polyfill.min.js"></script>
-	</head>
+	<link rel="stylesheet" href="../branding/brand.css">
+<link rel="icon" type="image/png" href="../branding/icon32.png">
+<link rel="stylesheet" href="../youtube/growth-panel.css">
+<link rel="stylesheet" href="growth.css">
+<link rel="stylesheet" href="../branding/theme.css">
+</head>
 	<body id="popup-container">
+<div class="unified-brand-row"><img class="unified-brand-logo" src="../branding/logo.jpeg" alt="个人 logo" width="90" height="34"><span>Unified Obsidian Clipper</span></div>
 		<div id="popup-header">
 			<div id="template-container">
 				<select id="template-select">
@@ -51,6 +58,7 @@
 			<div id="note-content-container">
 				<textarea id="note-content-field" rows="4" data-i18n="notesAboutPage"></textarea>
 			</div>
+		<p id="articleGrowthNotice" class="growth-hint">文章提取完成后可在下方开展成长对话。</p>
 			<div class="clipper-footer">
 				<div class="vault-path-container">
 					<div id="vault-container" style="display: none;">
@@ -68,6 +76,7 @@
 					<div id="token-counter" class="token-counter"></div>
 					<div id="interpreter-error" style="display: none;"></div>
 				</div>
+				<p class="unified-save-hint">保存笔记与思维脑图；有成长对话时一并保存报告</p>
 				<div class="action-buttons" id="action-buttons">
 					<button id="clip-btn" class="mod-cta"><!-- Text set by determineMainAction --></button>
 					<div class="menu-btn">
@@ -83,7 +92,47 @@
 					</div>
 				</div>
 			</div>
-		</div>
-		<script type="module" src="popup.js"></script>
+    <details class="growth-chat" id="growthChat" hidden>
+      <summary>成长对话 <span>基于文章 · 行动计划</span></summary>
+      <div class="growth-body">
+        <p class="growth-hint">使用 YouTube 设置中的 DeepSeek。图片、音频、视频等请在 Gemini 客户端分析后导入文字结果；这里不会自动读取或上传附件。</p>
+        <p id="growthEmpty" class="growth-hint">从一个具体问题开始：这篇文章中，哪些方法适合我现在的目标？</p>
+        <div id="growthMessages" class="growth-messages" aria-label="当前文章对话记录"></div>
+        <label for="growthQuestion">你的问题或下一步目标</label>
+        <textarea id="growthQuestion" rows="3" maxlength="8000" placeholder="例如：我每周只有两小时，如何把文章中的方法用到实际工作？"></textarea>
+        <div class="growth-actions">
+          <button id="growthSend" class="primary" type="button">发送</button>
+          <button id="growthStop" type="button" hidden>停止</button>
+          <button id="growthCopyClient" type="button">复制给 Gemini 客户端</button>
+        </div>
+        <details class="growth-import">
+          <summary>导入客户端附件分析结果</summary>
+          <p class="growth-hint">1. 复制上方提示到客户端并上传附件；2. 粘贴分析结果；3. 导入后继续提问。导入材料本身不算一次对话。</p>
+          <label for="growthSourceTitle">材料名称</label>
+          <input id="growthSourceTitle" maxlength="200" placeholder="例如：职业规划 PDF · Gemini 分析" />
+          <label for="growthSourceText">分析结果（最多 20,000 字符）</label>
+          <textarea id="growthSourceText" rows="4" maxlength="20000" placeholder="粘贴客户端分析，保留原文引用、页码或时间戳，以及不确定之处。"></textarea>
+          <button id="growthImport" type="button">导入作为补充资料</button>
+        </details>
+        <div id="growthSources" aria-label="已导入的补充资料"></div>
+        <div class="growth-actions">
+          <button id="growthReport" type="button" disabled>生成／预览成长报告</button>
+          <button id="growthClear" type="button">清空本篇对话</button>
+        </div>
+        <p id="growthStatus" class="growth-status" role="status" aria-live="polite"></p>
+        <details id="growthReportPreview" class="growth-report" hidden>
+          <summary>成长报告预览</summary>
+          <pre id="growthReportText"></pre>
+        </details>
+	      </div>
+	    </details>
+			</div>
+    <script src="../youtube/growth-core.js"></script>
+<script src="../youtube/growth-panel.js"></script>
+<script src="growth-core.js"></script>
+<script src="growth-ui.js"></script>
+<script src="growth-export.js"></script>
+<script src="growth-init.js"></script>
+<script type="module" src="popup.js"></script>
 	</body>
 </html>

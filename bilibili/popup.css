@@ -1,17 +1,17 @@
 :root {
-  --popup-bg: #f7f7f8;
+  --popup-bg: #f7f3ec;
   --panel-bg: #ffffff;
-  --panel-border: #cfd7e6;
+  --panel-border: #ece5d9;
   --button-bg: #ffffff;
-  --button-border: #cfd7e6;
-  --button-text: #4b556b;
-  --status-bg: #f2fbf5;
-  --status-border: #b9e7c7;
-  --status-text: #34a96b;
+  --button-border: #ece5d9;
+  --button-text: #6b6258;
+  --status-bg: #eef2e9;
+  --status-border: #d8e1cf;
+  --status-text: #60734f;
   --status-error-bg: #fdf1f1;
   --status-error-border: #efc2c2;
   --status-error-text: #d35f5f;
-  --action-accent: rgb(138, 112, 245);
+  --action-accent: rgb(200, 103, 79);
 }
 
 html,
@@ -21,7 +21,7 @@ body {
   width: 360px;
   height: 540px;
   background: var(--popup-bg);
-  color: #2f2f2f;
+  color: #2e2a24;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue",
     Arial, sans-serif;
   overflow: hidden;
@@ -72,16 +72,16 @@ body {
 }
 
 .ghost-ai {
-  border-color: rgba(138, 112, 245, 0.34);
-  background: linear-gradient(180deg, #f3efff 0%, #ece6ff 100%);
-  color: rgb(138, 112, 245);
+  border-color: rgba(200, 103, 79, 0.34);
+  background: linear-gradient(180deg, #fbf1ec 0%, #f4e4dc 100%);
+  color: rgb(200, 103, 79);
   font-weight: 700;
-  box-shadow: 0 1px 0 rgba(138, 112, 245, 0.08);
+  box-shadow: 0 1px 0 rgba(200, 103, 79, 0.08);
   gap: 4px;
 }
 
 .ghost-ai:hover {
-  background: linear-gradient(180deg, #ede7ff 0%, #e4dcff 100%);
+  background: linear-gradient(180deg, #f4e4dc 0%, #edd8ce 100%);
 }
 
 .ghost-ai svg {
@@ -133,7 +133,7 @@ body {
 
 .k {
   font-size: 12px;
-  color: #666;
+  color: #6b6258;
   white-space: nowrap;
 }
 
@@ -147,7 +147,7 @@ body {
 .label {
   font-size: 11.9px;
   font-weight: 600;
-  color: #4d4d4d;
+  color: #6b6258;
   white-space: nowrap;
 }
 
@@ -157,7 +157,7 @@ body {
   border-radius: 8px;
   padding: 0 8px;
   background: var(--panel-bg);
-  color: #2d2d2d;
+  color: #2e2a24;
   font-size: 13px;
 }
 
@@ -177,7 +177,7 @@ body {
   font-size: 12px;
   line-height: 1.5;
   background: var(--panel-bg);
-  color: #2f2f2f;
+  color: #2e2a24;
   overflow: auto;
   white-space: pre;
   font-family: "SF Mono", "JetBrains Mono", "PingFang SC", Menlo, Monaco, Consolas, monospace;
@@ -201,8 +201,8 @@ body {
 }
 
 .send {
-  border: 1px solid #a88fff;
-  background: linear-gradient(180deg, #9c82ff 0%, #8f75ef 100%);
+  border: 1px solid #c8674f;
+  background: linear-gradient(180deg, #c8674f 0%, #b25742 100%);
   border-radius: 9px;
   padding: 8px 0;
   font-size: 14px;
@@ -219,7 +219,7 @@ button:disabled {
 .message {
   margin: 0;
   font-size: 12px;
-  color: #0f766e;
+  color: #60734f;
   white-space: normal;
   line-height: 1.35;
   overflow: visible;

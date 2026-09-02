@@ -289,8 +289,8 @@
 
 #boc-send-btn {
   grid-column: span 2;
-  border: 1px solid #a88fff;
-  background: linear-gradient(180deg, #9c82ff 0%, #8f75ef 100%);
+  border: 1px solid #c8674f;
+  background: linear-gradient(180deg, #c8674f 0%, #b25742 100%);
   color: #fff;
   font-weight: 600;
 }
@@ -470,9 +470,9 @@
 }
 
 .boc-reading-icon-btn.is-active {
-  background: #eff6ff;
-  border-color: #2563eb;
-  color: #2563eb;
+  background: #fbf1ec;
+  border-color: #c8674f;
+  color: #c8674f;
 }
 
 .boc-reading-panel-row {
@@ -507,8 +507,8 @@
 
 .boc-reading-select-sm:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  border-color: #c8674f;
+  box-shadow: 0 0 0 2px rgba(200, 103, 79, 0.1);
 }
 
 .boc-reading-list,
@@ -1658,4 +1658,60 @@ body[data-boc-reader-mode="1"] [class*="ad-report"],
 body[data-boc-reader-mode="1"] [class*="mini-player"],
 body[data-boc-reader-mode="1"] [class*="picture-in-picture"] {
   display: none !important;
+}
+
+/* Unified extension overlays; selectors never affect a normal Bilibili page. */
+#boc-panel {
+  color-scheme: light;
+  background: #f7f3ec;
+  border-color: #ece5d9;
+  color: #2e2a24;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(50, 42, 32, .22);
+}
+#boc-panel :is(.boc-header strong, .boc-props-head, .boc-label) { color: #2e2a24; }
+#boc-panel :is(.boc-meta, textarea, select) { background: #fff; color: #2e2a24; border-color: #ece5d9; border-radius: 12px; }
+#boc-panel .boc-status { background: #fbf8f2; color: #6b6258; }
+#boc-panel .boc-header button { background: #fff; color: #6b6258; border-color: #ece5d9; }
+#boc-panel .boc-header button:hover { background: #fbf1ec; color: #c8674f; }
+#boc-panel :is(button, input, select, textarea):focus-visible,
+#boc-reading-view :is(button, input, select, textarea, a):focus-visible,
+.boc-player-ai-wrap:focus-within { outline: 2px solid #c8674f; outline-offset: 2px; }
+html[data-boc-reader-mode="1"]:not([data-boc-reader-theme="dark"]):not([data-boc-reader-theme="paper"]),
+body[data-boc-reader-mode="1"]:not([data-boc-reader-theme="dark"]):not([data-boc-reader-theme="paper"]),
+#boc-reading-view:not([data-theme="dark"]):not([data-theme="paper"]) {
+  --boc-reader-page-bg: #f7f3ec;
+  --boc-reader-surface: #ffffff;
+  --boc-reader-surface-2: #fbf8f2;
+  --boc-reader-surface-3: #f4e4dc;
+  --boc-reader-border: #ece5d9;
+  --boc-reader-text: #2e2a24;
+  --boc-reader-muted: #6b6258;
+  --boc-reader-accent: #c8674f;
+  --boc-reader-accent-soft: rgba(200, 103, 79, .1);
+  --boc-reader-shadow: 0 4px 16px rgba(90, 80, 60, .1);
+}
+#boc-reading-view .boc-reading-header,
+#boc-reading-view .boc-reading-settings-panel {
+  color-scheme: light;
+  --boc-reader-surface: #ffffff;
+  --boc-reader-surface-2: #fbf8f2;
+  --boc-reader-surface-3: #f4e4dc;
+  --boc-reader-border: #ece5d9;
+  --boc-reader-text: #2e2a24;
+  --boc-reader-muted: #6b6258;
+  --boc-reader-accent: #c8674f;
+  --boc-reader-accent-soft: rgba(200, 103, 79, .1);
+}
+.boc-player-ai-wrap,
+.boc-player-ai-wrap.is-active,
+.boc-player-ai-wrap:hover,
+.boc-player-ai-wrap:focus-within {
+  background: rgba(255, 255, 255, .96);
+  border-color: #ece5d9;
+  box-shadow: 0 4px 16px rgba(90, 80, 60, .1);
+}
+#boc-player-ai-quick-action {
+  --boc-player-ai-action-color: #c8674f;
+  --boc-player-ai-action-hover-color: #b25742;
 }

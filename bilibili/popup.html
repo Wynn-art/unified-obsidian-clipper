@@ -1,13 +1,17 @@
 <!doctype html>
-<html lang="zh-CN">
+<html data-unified-ui="bilibili" lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bilibili Clipper</title>
     <link rel="stylesheet" href="./popup.css" />
-  </head>
+  <link rel="stylesheet" href="../branding/brand.css">
+<link rel="icon" type="image/png" href="../branding/icon32.png">
+<link rel="stylesheet" href="../branding/theme.css">
+</head>
   <body>
     <main class="popup">
+<div class="unified-brand-row"><img class="unified-brand-logo" src="../branding/logo.jpeg" alt="个人 logo" width="90" height="34"><span>Unified Obsidian Clipper</span></div>
       <header class="top">
         <strong>B站字幕</strong>
         <div class="top-actions">
@@ -23,6 +27,8 @@
         </div>
       </header>
 
+      <button type="button" class="send" data-unified-bili-mode="study">学习模式 · 双语字幕 / 概览 / 笔记 / 问答</button>
+      <p id="unifiedNavigationStatus" class="message" role="status"></p>
       <p id="status" class="status">准备就绪</p>
 
       <div class="section-title">属性</div>
@@ -50,5 +56,6 @@
     </main>
 
     <script src="./popup.js"></script>
+      <script src="../bilibili-digest/navigation.js"></script>
   </body>
 </html>

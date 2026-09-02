@@ -1,0 +1,178 @@
+/* Unified Calm Terracotta. Loaded last by extension documents only.
+ * data-unified-ui prevents these component rules from styling host websites.
+ * Reading preferences and semantic error/warning states remain independent. */
+html[data-unified-ui]:not(.obsidian-reader-active),
+html[data-unified-ui]:not(.obsidian-reader-active) body {
+  color-scheme: light;
+  --bg: #f7f3ec;
+  --surface: #ffffff;
+  --surface-raised: #fbf8f2;
+  --border: #ece5d9;
+  --border-heavy: #ddd4c4;
+  --text: #2e2a24;
+  --text-secondary: #6b6258;
+  --text-muted: #6b6258;
+  --text-faint: #a39a8d;
+  --accent: #c8674f;
+  --accent-hover: #b25742;
+  --accent-dim: rgba(200, 103, 79, .1);
+  --sage: #7c8b6f;
+  --sage-dim: rgba(124, 139, 111, .14);
+  --success: #60734f;
+  --ok: #60734f;
+  --danger: #b83e42;
+  --danger-soft: rgba(184, 62, 66, .1);
+  --shadow-sm: 0 1px 3px rgba(90, 80, 60, .06);
+  --shadow-md: 0 4px 16px rgba(90, 80, 60, .1);
+  --shadow-lg: 0 16px 48px rgba(50, 42, 32, .22);
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  --font-display: var(--font-body);
+  --font-reading: var(--font-body);
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Bilibili Study / legacy clipper vocabulary. */
+  --card: var(--surface);
+  --input: var(--surface);
+  --bg-hover: var(--surface-raised);
+  --bg-active: var(--accent-dim);
+  --border-strong: var(--border-heavy);
+  --accent-strong: var(--accent-hover);
+  --accent-soft: var(--accent-dim);
+  --accent-soft-strong: rgba(200, 103, 79, .18);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-pill: var(--r-pill);
+  --focus-ring: 2px solid var(--accent);
+  --popup-bg: var(--bg);
+  --panel-bg: var(--surface);
+  --panel-border: var(--border);
+  --button-bg: var(--surface);
+  --button-border: var(--border-heavy);
+  --button-text: var(--text-secondary);
+  --action-accent: var(--accent);
+  --status-bg: #eef2e9;
+  --status-border: #d8e1cf;
+  --status-text: #60734f;
+  --status-error-bg: #fff1ef;
+  --status-error-border: #ecc5bf;
+  --status-error-text: #b83e42;
+
+  /* Web Clipper vocabulary. Explicit values also override OS dark mode. */
+  --accent-h: 12;
+  --accent-s: 52%;
+  --accent-l: 55%;
+  --color-accent-hsl: 12, 52%, 55%;
+  --color-accent: var(--accent);
+  --color-accent-1: var(--accent);
+  --color-accent-2: var(--accent-hover);
+  --color-accent-3: var(--accent-hover);
+  --color-base-00: #ffffff;
+  --color-base-05: #fbf8f2;
+  --color-base-10: #fbf8f2;
+  --color-base-20: #f7f3ec;
+  --color-base-25: #ece5d9;
+  --color-base-30: #ece5d9;
+  --color-base-35: #ddd4c4;
+  --color-base-40: #c5b9a7;
+  --color-base-50: #a39a8d;
+  --color-base-60: #7c7266;
+  --color-base-70: #6b6258;
+  --color-base-100: #2e2a24;
+  --background-primary: var(--surface);
+  --background-primary-alt: var(--surface-raised);
+  --background-secondary: var(--bg);
+  --background-modifier-border: var(--border);
+  --background-modifier-border-hover: var(--border-heavy);
+  --background-modifier-border-focus: var(--accent);
+  --background-modifier-form-field: var(--surface);
+  --background-modifier-hover: var(--accent-dim);
+  --background-modifier-cover: rgba(50, 42, 32, .3);
+  --text-normal: var(--text);
+  --text-accent: var(--accent);
+  --text-accent-hover: var(--accent-hover);
+  --text-on-accent: #ffffff;
+  --text-selection: rgba(200, 103, 79, .2);
+  --interactive-normal: var(--surface);
+  --interactive-hover: var(--surface-raised);
+  --interactive-accent: var(--accent);
+  --interactive-accent-hover: var(--accent-hover);
+  --color-red: #b83e42;
+  --color-red-hsl: 358, 50%, 48%;
+  --color-green: #60734f;
+  --color-green-hsl: 92, 19%, 38%;
+  --color-orange-rgb: 153, 99, 34;
+  --mono-rgb-0: 255, 255, 255;
+  --mono-rgb-100: 46, 42, 36;
+  --input-shadow: inset 0 0 0 1px var(--border), var(--shadow-sm);
+  --input-shadow-hover: inset 0 0 0 1px var(--border-heavy), var(--shadow-sm);
+  --shadow-s: var(--shadow-md);
+  --shadow-l: var(--shadow-lg);
+  --radius-s: var(--r-sm);
+  --radius-m: var(--r-md);
+  --radius-l: var(--r-lg);
+  --corner-shape: round;
+  --font-default: var(--font-body);
+}
+html[data-unified-ui]:not(.obsidian-reader-active) body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+html[data-unified-ui] :where(button, input, textarea, select) { font-family: inherit; }
+html[data-unified-ui] :where(input, textarea, select) { color: var(--text); accent-color: var(--accent); }
+html[data-unified-ui] :where(a) { color: var(--accent); }
+html[data-unified-ui] :where(a:hover) { color: var(--accent-hover); }
+html[data-unified-ui] :where(button, a, input, textarea, select, [tabindex], [contenteditable]):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+html[data-unified-ui] :where(button:disabled, input:disabled, select:disabled) { cursor: not-allowed; }
+html[data-unified-ui] ::selection { background: rgba(200, 103, 79, .2); }
+html[data-unified-ui] .unified-brand-row { color: var(--text-secondary); }
+html[data-unified-ui] .unified-brand-row > span { opacity: 1; }
+
+/* Keep original layout/visibility rules; adapt surfaces and interactive shapes. */
+html[data-unified-ui="bilibili"] .container,
+html[data-unified-ui="bilibili"] .props,
+html[data-unified-ui="bilibili"] .field-group {
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+html[data-unified-ui="bilibili"] .container { border-radius: var(--r-lg); box-shadow: var(--shadow-md); }
+html[data-unified-ui="bilibili"] .quick-start { background: var(--surface-raised); border-color: var(--border); }
+html[data-unified-ui="bilibili"] .sp-header { background: var(--surface); border-color: var(--border); box-shadow: var(--shadow-sm); }
+html[data-unified-ui="bilibili"] .ghost-ai { color: var(--accent); background: var(--accent-dim); border-color: var(--border-heavy); }
+html[data-unified-ui="bilibili"] .ghost-ai:hover { background: rgba(200, 103, 79, .18); }
+html[data-unified-ui="web"] #popup-header { background: var(--surface); border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+html[data-unified-ui="web"] #popup-container > .unified-brand-row { background: var(--surface); }
+html[data-unified-ui="web"] .metadata-properties { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-sm); }
+html[data-unified-ui="web"] #note-content-field { background: var(--surface); border-radius: var(--r-md); }
+html[data-unified-ui="web"] #clip-btn,
+html[data-unified-ui="web"] #more-btn { border-radius: var(--r-pill); }
+html[data-unified-ui="web"] #settings-sidebar,
+html[data-unified-ui="web"] #navbar { background: var(--surface); }
+html[data-unified-ui="web"]#settings-page,
+html[data-unified-ui="web"]#highlights-page {
+  --settings-background: var(--bg);
+  --settings-items-backgroud: var(--surface);
+}
+html[data-unified-ui="web"] .unified-save-hint { margin: 0 0 8px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+html[data-unified-ui="status"] main { max-width: 560px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); }
+html[data-unified-ui="status"] code { background: var(--surface-raised); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  html[data-unified-ui] *, html[data-unified-ui] *::before, html[data-unified-ui] *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* The upstream web stylesheet draws a white select chevron in OS dark mode. */
+html[data-unified-ui="web"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b6258' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");
+}
